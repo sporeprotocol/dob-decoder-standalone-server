@@ -1,0 +1,28 @@
+# identifier of DOB protocol version
+protocol_version = "dob/0"
+
+# connect to the RPC of CKB node
+ckb_rpc = "https://testnet.ckbapp.dev/"
+
+# address that rpc server running at in case of standalone server mode
+rpc_server_address = "0.0.0.0:8090"
+
+# native ckb-vm execution env in case of embeded ckb-vm feature
+ckb_vm_runner = "ckb-vm-runner"
+
+# directory that stores decoders on hard-disk, including on-chain and off-chain binary files
+decoders_cache_directory = "decoders"
+
+# all deployed on-chain Spore contracts binary hash (order from new to old)
+# refer to: https://github.com/sporeprotocol/spore-contract/blob/master/docs/VERSIONS.md
+avaliable_spore_code_hashes = [
+    "0x685a60219309029d01310311dba953d67029170ca4848a4ff638e57002130a0d",
+    "0x5e063b4c0e7abeaa6a428df3b693521a3050934cf3b0ae97a800d1bc31449398",
+]
+
+# all deployed on-chain Cluster contracts binary hash (order from new to old)
+# refer to: https://github.com/sporeprotocol/spore-contract/blob/master/docs/VERSIONS.md
+avaliable_cluster_code_hashes = [
+    "0x0bbe768b519d8ea7b96d58f1182eb7e6ef96c541fbd9526975077ee09f049058",
+    "0x7366a61534fa7c7e6225ecc0d828ea3b5366adec2b58206f2ee84995fe030075",
+]
