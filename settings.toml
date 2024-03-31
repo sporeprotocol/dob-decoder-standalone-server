@@ -1,4 +1,4 @@
-# identifier of DOB protocol version
+# identifier of specific DOB protocol version
 protocol_version = "dob/0"
 
 # connect to the RPC of CKB node
