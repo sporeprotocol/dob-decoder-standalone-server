@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, path::PathBuf};
 
 #[cfg(feature = "standalone_server")]
 use std::{
@@ -64,7 +64,7 @@ impl DOBDecoder {
             DecoderLocationType::CodeHash => {
                 let mut decoder_path = self.settings.decoders_cache_directory.clone();
                 decoder_path.push(format!(
-                    "code_hash_{}.dob",
+                    "code_hash_{}.bin",
                     hex::encode(&dob_metadata.dob.decoder.hash)
                 ));
                 if !decoder_path.exists() {
@@ -75,7 +75,7 @@ impl DOBDecoder {
             DecoderLocationType::TypeId => {
                 let mut decoder_path = self.settings.decoders_cache_directory.clone();
                 decoder_path.push(format!(
-                    "type_id_{}.dob",
+                    "type_id_{}.bin",
                     hex::encode(&dob_metadata.dob.decoder.hash)
                 ));
                 if !decoder_path.exists() {
@@ -255,25 +255,66 @@ fn build_batch_search_options(
         .collect()
 }
 
-#[cfg(feature = "standalone_server")]
-pub enum DecoderCommand {
+enum DecoderCommand {
     ProtocolVersion(Sender<String>),
     DecodeDNA([u8; 32], Sender<DecodeResult<(String, SporeContentField)>>),
     Stop,
 }
 
-#[cfg(feature = "standalone_server")]
+pub struct DecoderCmdSender {
+    sender: Sender<DecoderCommand>,
+    cache_path: PathBuf,
+}
+
+impl DecoderCmdSender {
+    fn new(sender: Sender<DecoderCommand>, cache_path: PathBuf) -> Self {
+        Self { sender, cache_path }
+    }
+
+    pub fn protocol_version(&self) -> String {
+        let (tx, rx) = channel();
+        self.sender
+            .send(DecoderCommand::ProtocolVersion(tx))
+            .unwrap();
+        rx.recv().unwrap()
+    }
+
+    pub fn decode_dna(&self, hexed_spore_id: &str) -> DecodeResult<(String, SporeContentField)> {
+        let spore_id: [u8; 32] = hex::decode(hexed_spore_id)
+            .map_err(|_| Error::HexedSporeIdParseError)?
+            .try_into()
+            .map_err(|_| Error::SporeIdLengthInvalid)?;
+        let mut cache_path = self.cache_path.clone();
+        cache_path.push(format!("{}.dob", hex::encode(&spore_id)));
+        if cache_path.exists() {
+            read_dob_from_cache(cache_path)
+        } else {
+            let (tx, rx) = channel();
+            self.sender
+                .send(DecoderCommand::DecodeDNA(spore_id, tx))
+                .unwrap();
+            let (output, content) = rx.recv().unwrap()?;
+            write_dob_to_cache(&output, &content, cache_path);
+            Ok((output, content))
+        }
+    }
+
+    pub fn stop(&self) {
+        self.sender.send(DecoderCommand::Stop).unwrap();
+    }
+}
+
 pub struct DOBThreadDecoder {
     rx: Receiver<DecoderCommand>,
     decoder: DOBDecoder,
 }
 
-#[cfg(feature = "standalone_server")]
 impl DOBThreadDecoder {
-    pub fn new(settings: Settings) -> (Self, Sender<DecoderCommand>) {
+    pub fn new(settings: Settings) -> (Self, DecoderCmdSender) {
         let (tx, rx) = channel();
         let decoder = DOBDecoder::new(settings);
-        (Self { rx, decoder }, tx)
+        let cmd = DecoderCmdSender::new(tx, decoder.settings.dobs_cache_directory.clone());
+        (Self { rx, decoder }, cmd)
     }
 
     pub fn run(self) {
@@ -288,7 +329,7 @@ impl DOBThreadDecoder {
                     match self.decoder.fetch_decode_ingredients(spore_id) {
                         Ok((content, metadata)) => {
                             match self.decoder.decode_dna(&content, metadata) {
-                                Ok(result) => response.send(Ok((result, content))).unwrap(),
+                                Ok(output) => response.send(Ok((output, content))).unwrap(),
                                 Err(error) => response.send(Err(error)).unwrap(),
                             }
                         }
@@ -298,4 +339,22 @@ impl DOBThreadDecoder {
             }
         });
     }
+}
+
+fn read_dob_from_cache(cache_path: PathBuf) -> DecodeResult<(String, SporeContentField)> {
+    let file_content = fs::read_to_string(cache_path).expect("read dob");
+    let mut lines = file_content.split('\n');
+    let (Some(result), Some(content)) = (lines.next(), lines.next()) else {
+        return Err(Error::DOBRenderCacheModified);
+    };
+    match serde_json::from_str::<SporeContentField>(content) {
+        Ok(content) => Ok((result.to_string(), content)),
+        Err(_) => Err(Error::DOBRenderCacheModified),
+    }
+}
+
+fn write_dob_to_cache(render_result: &str, dob_content: &SporeContentField, cache_path: PathBuf) {
+    let json_dob_content = serde_json::to_string(dob_content).unwrap();
+    let file_content = format!("{render_result}\n{json_dob_content}");
+    fs::write(cache_path, file_content).expect("write dob");
 }

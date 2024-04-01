@@ -4,8 +4,6 @@ use jsonrpsee::{server::ServerBuilder, tracing};
 use server::DecoderRpcServer;
 use tracing_subscriber::EnvFilter;
 
-use crate::decoder::DecoderCommand;
-
 mod decoder;
 mod server;
 mod types;
@@ -48,6 +46,6 @@ fn main() {
             tokio::signal::ctrl_c().await.unwrap();
             tracing::info!("stopping decoder server");
             handler.stop().unwrap();
-            decoder_cmd.send(DecoderCommand::Stop).unwrap();
+            decoder_cmd.stop();
         });
 }

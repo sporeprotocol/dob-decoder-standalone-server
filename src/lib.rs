@@ -6,22 +6,26 @@ mod vm;
 
 #[cfg(test)]
 mod test {
-    use ckb_types::h256;
+    use ckb_types::{h256, H256};
 
-    use crate::decoder::DOBDecoder;
+    use crate::decoder::{DOBDecoder, DOBThreadDecoder};
     use crate::types::{
         ClusterDescriptionField, DOBClusterFormat, DOBDecoderFormat, DecoderLocationType, Settings,
         SporeContentField,
     };
 
     const EXPECTED_RENDER_RESULT: &str = "[{\"name\":\"horn\",\"traits\":[{\"String\":\"Gold\"}]},{\"name\":\"wings\",\"traits\":[{\"String\":\"Colorful\"}]},{\"name\":\"body\",\"traits\":[{\"String\":\"White Water\"}]},{\"name\":\"tail\",\"traits\":[{\"String\":\"Colorful\"}]},{\"name\":\"hair\",\"traits\":[{\"String\":\"Yang-Short\"}]},{\"name\":\"horseshoes\",\"traits\":[{\"String\":\"White\"}]},{\"name\":\"talent\",\"traits\":[{\"String\":\"Crown\"}]},{\"name\":\"hp\",\"traits\":[{\"Number\":59576}]},{\"name\":\"lucky\",\"traits\":[{\"Number\":3}]}]";
+    const HEXED_SPORE_ID: &str = "0e61cc8eb420ce4ae44c922bfd17bc12204cf95f017a030f5a108d01339feb78";
+    const SPORE_ID: H256 =
+        h256!("0x0e61cc8eb420ce4ae44c922bfd17bc12204cf95f017a030f5a108d01339feb78");
 
     fn prepare_settings(version: &str) -> Settings {
         Settings {
             ckb_rpc: "https://testnet.ckbapp.dev/".to_string(),
             protocol_version: version.to_string(),
             ckb_vm_runner: "ckb-vm-runner".to_string(),
-            decoders_cache_directory: "decoders".parse().unwrap(),
+            decoders_cache_directory: "cache/decoders".parse().unwrap(),
+            dobs_cache_directory: "cache/dobs".parse().unwrap(),
             avaliable_spore_code_hashes: vec![
                 h256!("0x685a60219309029d01310311dba953d67029170ca4848a4ff638e57002130a0d"),
                 h256!("0x5e063b4c0e7abeaa6a428df3b693521a3050934cf3b0ae97a800d1bc31449398"),
@@ -72,9 +76,7 @@ mod test {
         let settings = prepare_settings("text/plain");
         let decoder = DOBDecoder::new(settings);
         let (dob_content, dob_metadata) = decoder
-            .fetch_decode_ingredients(
-                h256!("0x0e61cc8eb420ce4ae44c922bfd17bc12204cf95f017a030f5a108d01339feb78").into(),
-            )
+            .fetch_decode_ingredients(SPORE_ID.into())
             .expect("fetch");
         let render_result = decoder
             .decode_dna(&dob_content, dob_metadata)
@@ -87,10 +89,20 @@ mod test {
     fn test_fetch_onchain_dob_failed() {
         let settings = prepare_settings("dob/0");
         DOBDecoder::new(settings)
-            .fetch_decode_ingredients(
-                h256!("0x0e61cc8eb420ce4ae44c922bfd17bc12204cf95f017a030f5a108d01339feb78").into(),
-            )
+            .fetch_decode_ingredients(SPORE_ID.into())
             .expect("fetch");
+    }
+
+    #[test]
+    fn test_decode_onchain_unicorn_dna_in_thread() {
+        let protocol_version = "text/plain";
+        let settings = prepare_settings(protocol_version);
+        let (decoder, cmd) = DOBThreadDecoder::new(settings);
+        decoder.run();
+        assert_eq!(cmd.protocol_version(), protocol_version);
+        let (render_result, _) = cmd.decode_dna(HEXED_SPORE_ID).expect("thread decode");
+        assert_eq!(render_result, EXPECTED_RENDER_RESULT);
+        cmd.stop();
     }
 
     #[test]

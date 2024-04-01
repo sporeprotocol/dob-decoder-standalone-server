@@ -51,6 +51,8 @@ pub enum Error {
     DOBContentUnexpected,
     #[error("cluster description cannot parse to DOB metadata")]
     DOBMetadataUnexpected,
+    #[error("cached DOB render result file has changed unexpectedly")]
+    DOBRenderCacheModified,
 }
 
 #[cfg(feature = "standalone_server")]
@@ -108,20 +110,21 @@ pub struct SporeContentField {
 
 // standalone server settings in TOML format
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
-#[derive(Default)]
+#[cfg_attr(test, derive(Default))]
 pub struct Settings {
     pub protocol_version: String,
     pub ckb_rpc: String,
     pub rpc_server_address: String,
     pub ckb_vm_runner: String,
     pub decoders_cache_directory: PathBuf,
+    pub dobs_cache_directory: PathBuf,
     pub avaliable_spore_code_hashes: Vec<H256>,
     pub avaliable_cluster_code_hashes: Vec<H256>,
 }
 
 // decoding result contains rendered result from native decoder and DNA string for optional use
 #[cfg(feature = "standalone_server")]
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ServerDecodeResult {
     pub raw_render_result: String,
     pub dob_content: SporeContentField,
