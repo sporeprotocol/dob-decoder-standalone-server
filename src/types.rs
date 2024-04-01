@@ -121,11 +121,3 @@ pub struct Settings {
     pub avaliable_spore_code_hashes: Vec<H256>,
     pub avaliable_cluster_code_hashes: Vec<H256>,
 }
-
-// decoding result contains rendered result from native decoder and DNA string for optional use
-#[cfg(feature = "standalone_server")]
-#[derive(Serialize, Deserialize, Clone)]
-pub struct ServerDecodeResult {
-    pub raw_render_result: String,
-    pub dob_content: SporeContentField,
-}
