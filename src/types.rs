@@ -62,6 +62,7 @@ impl From<Error> for ErrorCode {
 
 // value on `description` field in Cluster data, adapting for DOB protocol in JSON format
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
 pub struct ClusterDescriptionField {
     pub description: String,
     pub dob: DOBClusterFormat,
@@ -69,6 +70,7 @@ pub struct ClusterDescriptionField {
 
 // contains `decoder` and `pattern` identifiers
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
 pub struct DOBClusterFormat {
     pub decoder: DOBDecoderFormat,
     pub pattern: String,
@@ -77,17 +79,19 @@ pub struct DOBClusterFormat {
 
 // restricted decoder locator type
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
 pub enum DecoderLocationType {
-    #[serde(alias = "type_id")]
+    #[serde(rename(serialize = "type_id", deserialize = "type_id"))]
     TypeId,
-    #[serde(alias = "code_hash")]
+    #[serde(rename(serialize = "code_hash", deserialize = "code_hash"))]
     CodeHash,
 }
 
 // decoder location information
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
 pub struct DOBDecoderFormat {
-    #[serde(alias = "type")]
+    #[serde(rename(serialize = "type", deserialize = "type"))]
     pub location: DecoderLocationType,
     pub hash: H256,
 }
@@ -95,6 +99,7 @@ pub struct DOBDecoderFormat {
 // value on `content` field in Spore data, adapting for DOB protocol in JSON format
 #[derive(Deserialize)]
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Clone))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct SporeContentField {
     pub block_number: u64,
     pub cell_id: u64,

@@ -14,28 +14,34 @@ mod test {
         SporeContentField,
     };
 
-    fn prepare_settings() -> Settings {
+    const EXPECTED_RENDER_RESULT: &str = "[{\"name\":\"horn\",\"traits\":[{\"String\":\"Gold\"}]},{\"name\":\"wings\",\"traits\":[{\"String\":\"Colorful\"}]},{\"name\":\"body\",\"traits\":[{\"String\":\"White Water\"}]},{\"name\":\"tail\",\"traits\":[{\"String\":\"Colorful\"}]},{\"name\":\"hair\",\"traits\":[{\"String\":\"Yang-Short\"}]},{\"name\":\"horseshoes\",\"traits\":[{\"String\":\"White\"}]},{\"name\":\"talent\",\"traits\":[{\"String\":\"Crown\"}]},{\"name\":\"hp\",\"traits\":[{\"Number\":59576}]},{\"name\":\"lucky\",\"traits\":[{\"Number\":3}]}]";
+
+    fn prepare_settings(version: &str) -> Settings {
         Settings {
             ckb_rpc: "https://testnet.ckbapp.dev/".to_string(),
-            protocol_version: "dob/0".to_string(),
+            protocol_version: version.to_string(),
             ckb_vm_runner: "ckb-vm-runner".to_string(),
             decoders_cache_directory: "decoders".parse().unwrap(),
+            avaliable_spore_code_hashes: vec![
+                h256!("0x685a60219309029d01310311dba953d67029170ca4848a4ff638e57002130a0d"),
+                h256!("0x5e063b4c0e7abeaa6a428df3b693521a3050934cf3b0ae97a800d1bc31449398"),
+            ],
+            avaliable_cluster_code_hashes: vec![
+                h256!("0x0bbe768b519d8ea7b96d58f1182eb7e6ef96c541fbd9526975077ee09f049058"),
+                h256!("0x7366a61534fa7c7e6225ecc0d828ea3b5366adec2b58206f2ee84995fe030075"),
+            ],
             ..Default::default()
         }
     }
 
-    #[test]
-    fn test_decode_unicorn_dna() {
-        let settings = prepare_settings();
-        let decoder = DOBDecoder::new(settings);
-
+    fn generate_dob_ingredients() -> (SporeContentField, ClusterDescriptionField) {
         let unicorn_content = SporeContentField {
             block_number: 0,
             cell_id: 0,
             dna: "44f24502b672369f94808892".to_string(),
         };
         let unicorn_metadata = ClusterDescriptionField {
-            description: Default::default(),
+            description: "Unicorn Collection".to_string(),
             dob: DOBClusterFormat {
                 decoder: DOBDecoderFormat {
                     location: DecoderLocationType::CodeHash,
@@ -47,10 +53,58 @@ mod test {
                 dna_bytes: 12,
             },
         };
+        (unicorn_content, unicorn_metadata)
+    }
+
+    #[test]
+    fn test_decode_unicorn_dna() {
+        let settings = prepare_settings("text/plain");
+        let decoder = DOBDecoder::new(settings);
+        let (unicorn_content, unicorn_metadata) = generate_dob_ingredients();
         let render_result = decoder
             .decode_dna(&unicorn_content, unicorn_metadata)
             .expect("decode");
-        let expected_render_result = "[{\"name\":\"horn\",\"traits\":[{\"String\":\"Gold\"}]},{\"name\":\"wings\",\"traits\":[{\"String\":\"Colorful\"}]},{\"name\":\"body\",\"traits\":[{\"String\":\"White Water\"}]},{\"name\":\"tail\",\"traits\":[{\"String\":\"Colorful\"}]},{\"name\":\"hair\",\"traits\":[{\"String\":\"Yang-Short\"}]},{\"name\":\"horseshoes\",\"traits\":[{\"String\":\"White\"}]},{\"name\":\"talent\",\"traits\":[{\"String\":\"Crown\"}]},{\"name\":\"hp\",\"traits\":[{\"Number\":59576}]},{\"name\":\"lucky\",\"traits\":[{\"Number\":3}]}]";
-        assert_eq!(render_result, expected_render_result);
+        assert_eq!(render_result, EXPECTED_RENDER_RESULT);
+    }
+
+    #[test]
+    fn test_decode_onchain_unicorn_dna() {
+        let settings = prepare_settings("text/plain");
+        let decoder = DOBDecoder::new(settings);
+        let (dob_content, dob_metadata) = decoder
+            .fetch_decode_ingredients(
+                h256!("0x0e61cc8eb420ce4ae44c922bfd17bc12204cf95f017a030f5a108d01339feb78").into(),
+            )
+            .expect("fetch");
+        let render_result = decoder
+            .decode_dna(&dob_content, dob_metadata)
+            .expect("decode");
+        assert_eq!(render_result, EXPECTED_RENDER_RESULT);
+    }
+
+    #[test]
+    #[should_panic = "fetch: DOBVersionUnexpected"]
+    fn test_fetch_onchain_dob_failed() {
+        let settings = prepare_settings("dob/0");
+        DOBDecoder::new(settings)
+            .fetch_decode_ingredients(
+                h256!("0x0e61cc8eb420ce4ae44c922bfd17bc12204cf95f017a030f5a108d01339feb78").into(),
+            )
+            .expect("fetch");
+    }
+
+    #[test]
+    fn test_json_serde() {
+        let (unicorn_content, unicorn_metadata) = generate_dob_ingredients();
+        let json_unicorn_content = serde_json::to_string(&unicorn_content).unwrap();
+        let json_unicorn_metadata = serde_json::to_string(&unicorn_metadata).unwrap();
+        println!("[spore_content] = {json_unicorn_content}");
+        println!("[cluster_description] = {json_unicorn_metadata}");
+        let deser_unicorn_content: SporeContentField =
+            serde_json::from_slice(json_unicorn_content.as_bytes()).unwrap();
+        let deser_unicorn_metadata: ClusterDescriptionField =
+            serde_json::from_slice(json_unicorn_metadata.as_bytes()).unwrap();
+        assert_eq!(unicorn_content, deser_unicorn_content);
+        assert_eq!(unicorn_metadata, deser_unicorn_metadata);
     }
 }
