@@ -6,6 +6,7 @@ Online features:
 - [x] native or embeded `ckb-vm` executor
 - [x] executable standalone JsonRpc server
 - [x] decoder binaries temporary cache
+- [x] render result temporary cache
 - [x] library exported for 3rd-party integration
 
 ## `ckb-vm` executor
@@ -31,6 +32,12 @@ Since decoder binary has two `location` types according to the requirement from 
 
 The `code_hash` location type requires user to compile out all of interested decoder RISC-V binaries in advance, and then, place them into project's decoder cache directory (in `code_hash_<hash>.bin` format). In contrast, the `type_id` location type has no extra demands, since these sort of decoder binaries have been already deployed into on-chain decoder cells which the project will automatically download from and persist into cache directory (in `type_id_<hash>.bin` format).
 
+## Render cache
+
+Considering the immutability of Spore and Cluster cell, the DNA string in Spore cell is immutable as well, so the rendering result of DNA is indeed immutable at the same time.
+
+Rendering output can be stored in cache directory for shorting down server response time for the same decoding requests, which is marked [here](https://github.com/sporeprotocol/dob-decoder-standalone-server/blob/master/settings.toml#L17).
+
 ## Launch JsonRpc server
 
 Running a JsonRpc server requires project to be built under feature `standalone_server` opened, which is marked in [default](https://github.com/sporeprotocol/dob-decoder-standalone-server/blob/master/Cargo.toml#L27).
@@ -49,7 +56,7 @@ $ echo '{
     "jsonrpc": "2.0",
     "method": "dob_decode",
     "params": [
-        "<spore_id in hex format without 0x as prefix>"
+        "<spore_id in hex format without 0x prefix>"
     ]
 }' \
 | curl -H 'content-type: application/json' -d @- \
