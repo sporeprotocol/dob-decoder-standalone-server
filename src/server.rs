@@ -44,6 +44,6 @@ impl DecoderRpcServer for DecoderStandaloneServer {
             render_output,
             dob_content,
         };
-        Ok(serde_json::to_string(&result).unwrap().replace('\\', ""))
+        Ok(serde_json::to_string(&result).unwrap())
     }
 }
