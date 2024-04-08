@@ -66,3 +66,31 @@ http://localhost:8090
 ## Protocol version
 
 Spore DOB protocol has unique version identifier (like ERC721 or ERC1155), however, different versions may have totally different behaviors in decoding operation, so that we come out a regulation that one server instance only serves under one specific DOB protocol version, which is marked [here](https://github.com/sporeprotocol/dob-decoder-standalone-server/blob/master/settings.toml#L2).
+
+## Error codes
+
+refer to error definitions [here](https://github.com/sporeprotocol/dob-decoder-standalone-server/blob/master/src/types.rs#L13).
+
+| error code | short definition |
+| -------- | ------- |
+| 1001 | DnaLengthNotMatch |
+| 1002 | SporeIdLengthInvalid |
+| 1003 | NativeDecoderNotFound |
+| 1004 | SporeIdNotFound |
+| 1005 | SporeDataUncompatible |
+| 1006 | SporeDataContentTypeUncompatible |
+| 1007 | DOBVersionUnexpected |
+| 1008 | ClusterIdNotSet |
+| 1009 | ClusterIdNotFound |
+| 1010 | ClusterDataUncompatible |
+| 1011 | DecoderIdNotFound |
+| 1012 | DecoderOutputInvalid |
+| 1013 | HexedDNAParseError |
+| 1014 | HexedSporeIdParseError |
+| 1015 | DecoderBinaryPathInvalid |
+| 1016 | DecoderExecutionError |
+| 1017 | DecoderExecutionInternalError |
+| 1018 | FetchLiveCellsError |
+| 1019 | DOBContentUnexpected |
+| 1020 | DOBMetadataUnexpected |
+| 1021 | DOBRenderCacheModified |

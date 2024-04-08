@@ -171,7 +171,10 @@ impl DOBDecoder {
         let content_type =
             String::from_utf8(molecule_spore_data.content_type().raw_data().to_vec())
                 .map_err(|_| Error::SporeDataContentTypeUncompatible)?;
-        if self.settings.protocol_version != content_type.to_string() {
+        if !content_type
+            .to_string()
+            .starts_with(&self.settings.protocol_version)
+        {
             return Err(Error::DOBVersionUnexpected);
         }
         let cluster_id = molecule_spore_data
