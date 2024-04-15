@@ -1,5 +1,5 @@
 # identifier of specific DOB protocol version
-protocol_version = "text/plain" # CAUTION: should be "dob/0" in production env
+protocol_version = "dob/0"
 
 # connect to the RPC of CKB node
 ckb_rpc = "https://testnet.ckbapp.dev/"

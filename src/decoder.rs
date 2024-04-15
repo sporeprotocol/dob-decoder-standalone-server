@@ -161,6 +161,9 @@ impl DOBDecoder {
                 .objects
                 .first()
                 .cloned();
+            if spore_cell.is_some() {
+                break;
+            }
         }
         let Some(spore_cell) = spore_cell else {
             return Err(Error::SporeIdNotFound);
@@ -200,6 +203,9 @@ impl DOBDecoder {
                 .objects
                 .first()
                 .cloned();
+            if cluster_cell.is_some() {
+                break;
+            }
         }
         let Some(cluster_cell) = cluster_cell else {
             return Err(Error::ClusterIdNotFound);
