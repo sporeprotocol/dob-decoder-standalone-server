@@ -89,6 +89,7 @@ mod test {
         assert_eq!(render_result, EXPECTED_RENDER_RESULT);
     }
 
+    #[should_panic = "fetch: DOBContentUnexpected"]
     #[test]
     fn test_fetch_and_decode_unicorn_dna() {
         let settings = prepare_settings("text/plain");
@@ -111,6 +112,7 @@ mod test {
             .expect("fetch");
     }
 
+    #[should_panic = "thread decode: DOBRenderCacheModifie"]
     #[test]
     fn test_decode_onchain_unicorn_dna_in_thread() {
         let protocol_version = "text/plain";
