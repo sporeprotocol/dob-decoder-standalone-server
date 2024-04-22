@@ -75,7 +75,7 @@ pub struct ClusterDescriptionField {
 #[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
 pub struct DOBClusterFormat {
     #[serde(default)]
-    pub ver: u8,
+    pub ver: Option<u8>,
     pub decoder: DOBDecoderFormat,
     pub pattern: String,
     pub dna_bytes: u8,
@@ -105,7 +105,9 @@ pub struct DOBDecoderFormat {
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Clone))]
 #[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct SporeContentField {
-    pub id: u16,
+    pub block_number: Option<u64>,
+    pub cell_id: Option<u64>,
+    pub id: Option<u16>,
     pub dna: String,
 }
 
