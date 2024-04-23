@@ -91,6 +91,8 @@ refer to error definitions [here](https://github.com/sporeprotocol/dob-decoder-s
 | 1016 | DecoderExecutionError |
 | 1017 | DecoderExecutionInternalError |
 | 1018 | FetchLiveCellsError |
-| 1019 | DOBContentUnexpected |
-| 1020 | DOBMetadataUnexpected |
-| 1021 | DOBRenderCacheModified |
+| 1019 | FetchTransactionError |
+| 1020 | NoOutputCellInTransaction |
+| 1021 | DOBContentUnexpected |
+| 1022 | DOBMetadataUnexpected |
+| 1023 | DOBRenderCacheModified |
