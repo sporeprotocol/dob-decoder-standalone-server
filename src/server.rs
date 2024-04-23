@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use jsonrpsee::core::async_trait;
 use jsonrpsee::{proc_macros::rpc, tracing, types::ErrorCode};
 use serde::Serialize;
 
-use crate::{decoder::DecoderCmdSender, types::SporeContentField};
+use crate::{decoder::DOBDecoder, types::SporeContentField};
 
 // decoding result contains rendered result from native decoder and DNA string for optional use
 #[derive(Serialize, Clone)]
@@ -15,35 +16,36 @@ pub struct ServerDecodeResult {
 #[rpc(server)]
 trait DecoderRpc {
     #[method(name = "dob_protocol_version")]
-    fn protocol_version(&self) -> String;
+    async fn protocol_version(&self) -> String;
 
     #[method(name = "dob_decode")]
-    fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode>;
+    async fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode>;
 }
 
 pub struct DecoderStandaloneServer {
-    sender: Arc<DecoderCmdSender>,
+    decoder: Arc<DOBDecoder>,
 }
 
 impl DecoderStandaloneServer {
-    pub fn new(sender: Arc<DecoderCmdSender>) -> Self {
-        Self { sender }
+    pub fn new(decoder: Arc<DOBDecoder>) -> Self {
+        Self { decoder }
     }
 }
 
+#[async_trait]
 impl DecoderRpcServer for DecoderStandaloneServer {
-    fn protocol_version(&self) -> String {
-        self.sender.protocol_version()
+    async fn protocol_version(&self) -> String {
+        self.decoder.protocol_version()
     }
 
-    // decode DNA in particular spore DOB cell
-    fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode> {
-        tracing::info!("decoding spore_id {hexed_spore_id}");
-        let (render_output, dob_content) = self.sender.decode_dna(&hexed_spore_id)?;
-        let result = ServerDecodeResult {
-            render_output,
-            dob_content,
-        };
-        Ok(serde_json::to_string(&result).unwrap())
+    async fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode> {
+        let spore_id: [u8; 32] = hex::decode(hexed_spore_id).unwrap().try_into().unwrap();
+        let decoder = Arc::clone(&self.decoder);
+        let ret = tokio::task::spawn_blocking(move || decoder.fetch_dob_content(spore_id))
+            .await
+            .unwrap()
+            .unwrap();
+        tracing::info!("spore content: {:?}", ret.0.dna);
+        Ok("".into())
     }
 }

@@ -8,6 +8,8 @@ mod decoder;
 mod server;
 mod types;
 
+use crate::decoder::DOBDecoder;
+
 #[cfg(feature = "embeded_vm")]
 mod vm;
 
@@ -26,8 +28,7 @@ fn main() {
         serde_json::to_string_pretty(&settings).unwrap()
     );
     let rpc_server_address = settings.rpc_server_address.clone();
-    let (decoder, decoder_cmd) = decoder::DOBThreadDecoder::new(settings);
-    decoder.run();
+    let decoder = DOBDecoder::new(settings);
 
     tracing::info!("running decoder server at {}", rpc_server_address);
     tokio::runtime::Runtime::new()
@@ -39,13 +40,12 @@ fn main() {
                 .await
                 .expect("build http_server");
 
-            let decoder_cmd = Arc::new(decoder_cmd);
+            let decoder_cmd = Arc::new(decoder);
             let rpc_methods = server::DecoderStandaloneServer::new(decoder_cmd.clone());
             let handler = http_server.start(rpc_methods.into_rpc());
 
             tokio::signal::ctrl_c().await.unwrap();
             tracing::info!("stopping decoder server");
             handler.stop().unwrap();
-            decoder_cmd.stop();
         });
 }

@@ -149,7 +149,10 @@ impl DOBDecoder {
     }
 
     // search on-chain spore cell and return its content field, which represents dob content
-    fn fetch_dob_content(&self, spore_id: [u8; 32]) -> DecodeResult<(SporeContentField, [u8; 32])> {
+    pub(crate) fn fetch_dob_content(
+        &self,
+        spore_id: [u8; 32],
+    ) -> DecodeResult<(SporeContentField, [u8; 32])> {
         let mut spore_cell = None;
         for spore_search_option in
             build_batch_search_options(spore_id, &self.settings.avaliable_spore_code_hashes)
