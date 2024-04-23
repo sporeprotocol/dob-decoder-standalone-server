@@ -6,14 +6,15 @@ use std::{
     thread,
 };
 
+use ckb_jsonrpc_types::Either;
 use ckb_sdk::{
-    constants::TYPE_ID_CODE_HASH, rpc::ckb_indexer::Order, traits::CellQueryOptions,
+    constants::TYPE_ID_CODE_HASH, rpc::ckb_indexer::Order, traits::CellQueryOptions, CkbRpcClient,
     IndexerRpcClient,
 };
 use ckb_types::{
     core::ScriptHashType,
-    packed::Script,
-    prelude::{Builder, Entity, Pack},
+    packed::{Script, Transaction},
+    prelude::{Builder, Entity, IntoTransactionView, Pack},
     H256,
 };
 use spore_types::generated::spore::{ClusterData, SporeData};
@@ -25,14 +26,16 @@ use crate::types::{
 type DecodeResult<T> = Result<T, Error>;
 
 pub struct DOBDecoder {
-    rpc: IndexerRpcClient,
+    ckb_rpc: CkbRpcClient,
+    indexer_rpc: IndexerRpcClient,
     settings: Settings,
 }
 
 impl DOBDecoder {
     pub fn new(settings: Settings) -> Self {
         Self {
-            rpc: IndexerRpcClient::new(&settings.ckb_rpc),
+            ckb_rpc: CkbRpcClient::new(&settings.ckb_rpc),
+            indexer_rpc: IndexerRpcClient::new(&settings.ckb_rpc),
             settings,
         }
     }
@@ -68,7 +71,25 @@ impl DOBDecoder {
                     hex::encode(&dob_metadata.dob.decoder.hash)
                 ));
                 if !decoder_path.exists() {
-                    return Err(Error::NativeDecoderNotFound);
+                    let onchain_decoder =
+                        self.settings
+                            .onchain_decoder_deployment
+                            .iter()
+                            .find_map(|deployment| {
+                                if deployment.code_hash == dob_metadata.dob.decoder.hash {
+                                    Some(self.fetch_decoder_binary_directly(
+                                        deployment.tx_hash.clone(),
+                                        deployment.out_index,
+                                    ))
+                                } else {
+                                    None
+                                }
+                            });
+                    let Some(decoder_binary) = onchain_decoder else {
+                        return Err(Error::NativeDecoderNotFound);
+                    };
+                    fs::write(decoder_path.clone(), decoder_binary?)
+                        .map_err(|_| Error::DecoderBinaryPathInvalid)?;
                 }
                 decoder_path
             }
@@ -155,7 +176,7 @@ impl DOBDecoder {
             build_batch_search_options(spore_id, &self.settings.avaliable_spore_code_hashes)
         {
             spore_cell = self
-                .rpc
+                .indexer_rpc
                 .get_cells(spore_search_option.into(), Order::Asc, 1.into(), None)
                 .map_err(|_| Error::FetchLiveCellsError)?
                 .objects
@@ -197,7 +218,7 @@ impl DOBDecoder {
             build_batch_search_options(cluster_id, &self.settings.avaliable_cluster_code_hashes)
         {
             cluster_cell = self
-                .rpc
+                .indexer_rpc
                 .get_cells(cluster_search_option.into(), Order::Asc, 1.into(), None)
                 .map_err(|_| Error::FetchLiveCellsError)?
                 .objects
@@ -223,7 +244,7 @@ impl DOBDecoder {
     fn fetch_decoder_binary(&self, decoder_id: [u8; 32]) -> DecodeResult<Vec<u8>> {
         let decoder_search_option = build_type_id_search_option(decoder_id);
         let decoder_cell = self
-            .rpc
+            .indexer_rpc
             .get_cells(decoder_search_option.into(), Order::Asc, 1.into(), None)
             .map_err(|_| Error::FetchLiveCellsError)?
             .objects
@@ -235,6 +256,31 @@ impl DOBDecoder {
             .unwrap_or_default()
             .as_bytes()
             .into())
+    }
+
+    // search on-chain decoder cell, directly by its tx_hash and out_index
+    fn fetch_decoder_binary_directly(
+        &self,
+        tx_hash: H256,
+        out_index: usize,
+    ) -> DecodeResult<Vec<u8>> {
+        let decoder_deployment_tx = self
+            .ckb_rpc
+            .get_transaction(tx_hash)
+            .map_err(|_| Error::FetchTransactionError)?
+            .ok_or(Error::FetchTransactionError)?
+            .transaction
+            .ok_or(Error::FetchTransactionError)?;
+        let tx = match decoder_deployment_tx.inner {
+            Either::Left(tx) => tx,
+            Either::Right(bytes) => serde_json::from_slice(bytes.as_bytes())
+                .map_err(|_| Error::FetchTransactionError)?,
+        };
+        let tx = Transaction::from(tx.inner).into_view();
+        let (_, decoder_binary) = tx
+            .output_with_data(out_index)
+            .ok_or(Error::NoOutputCellInTransaction)?;
+        Ok(decoder_binary.into())
     }
 }
 

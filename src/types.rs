@@ -47,6 +47,10 @@ pub enum Error {
     DecoderExecutionInternalError,
     #[error("encounter error while searching live cells")]
     FetchLiveCellsError,
+    #[error("encounter error while searching transaction by hash")]
+    FetchTransactionError,
+    #[error("not found specific output_cell in transaction")]
+    NoOutputCellInTransaction,
     #[error("spore content cannot parse to DOB content")]
     DOBContentUnexpected,
     #[error("cluster description cannot parse to DOB metadata")]
@@ -115,6 +119,15 @@ pub struct SporeContentField {
     pub dna: String,
 }
 
+// asscoiate `code_hash` of decoder binary with its onchain deployment information
+#[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
+#[cfg_attr(test, derive(Default))]
+pub struct OnchainDecoderDeployment {
+    pub code_hash: H256,
+    pub tx_hash: H256,
+    pub out_index: usize,
+}
+
 // standalone server settings in TOML format
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
 #[cfg_attr(test, derive(Default))]
@@ -125,6 +138,7 @@ pub struct Settings {
     pub ckb_vm_runner: String,
     pub decoders_cache_directory: PathBuf,
     pub dobs_cache_directory: PathBuf,
+    pub onchain_decoder_deployment: Vec<OnchainDecoderDeployment>,
     pub avaliable_spore_code_hashes: Vec<H256>,
     pub avaliable_cluster_code_hashes: Vec<H256>,
 }

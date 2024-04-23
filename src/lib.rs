@@ -159,7 +159,7 @@ mod test {
 
     #[test]
     fn test_nervape_json_serde() {
-        let (nervape_content, nervape_metadata) = generate_nervape_dob_ingredients(true);
+        let (nervape_content, nervape_metadata) = generate_nervape_dob_ingredients(false);
         let json_unicorn_content = serde_json::to_string(&nervape_content).unwrap();
         let json_unicorn_metadata = serde_json::to_string(&nervape_metadata).unwrap();
         println!("[spore_content] = {json_unicorn_content}");

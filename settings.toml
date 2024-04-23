@@ -29,3 +29,10 @@ avaliable_cluster_code_hashes = [
     "0x0bbe768b519d8ea7b96d58f1182eb7e6ef96c541fbd9526975077ee09f049058",
     "0x7366a61534fa7c7e6225ecc0d828ea3b5366adec2b58206f2ee84995fe030075",
 ]
+
+# associate `code_hash` with the corresponding onchain information about `tx_hash` and `out_index`
+# server will firstly search onchain decoders by `code_hash` in this configuration, if not found, cache will be used instead
+[[onchain_decoder_deployment]]
+code_hash = "0xedbb2d19515ebbf69be66b2178b0c4c0884fdb33878bd04a5ad68736a6af74f8"
+tx_hash = "0xafe73550d589944a84a29cdd65dd46930f7054783bcddf30c201fdde3f386604"
+out_index = 0
