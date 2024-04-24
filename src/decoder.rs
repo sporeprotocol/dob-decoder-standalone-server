@@ -88,7 +88,13 @@ impl DOBDecoder {
                     let Some(decoder_binary) = onchain_decoder else {
                         return Err(Error::NativeDecoderNotFound);
                     };
-                    fs::write(decoder_path.clone(), decoder_binary?)
+                    let decoder_file_content = decoder_binary?;
+                    if ckb_hash::blake2b_256(&decoder_file_content)
+                        != dob_metadata.dob.decoder.hash.0
+                    {
+                        return Err(Error::DecoderBinaryHashInvalid);
+                    }
+                    fs::write(decoder_path.clone(), decoder_file_content)
                         .map_err(|_| Error::DecoderBinaryPathInvalid)?;
                 }
                 decoder_path

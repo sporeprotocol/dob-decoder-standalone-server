@@ -55,7 +55,7 @@ mod test {
         } else {
             DOBDecoderFormat {
                 location: DecoderLocationType::CodeHash,
-                hash: h256!("0xedbb2d19515ebbf69be66b2178b0c4c0884fdb33878bd04a5ad68736a6af74f8"),
+                hash: h256!("0xb82abd59ade361a014f0abb692f71b0feb880693c3ccb95b9137b73551d872ce"),
             }
         };
         let nervape_metadata = ClusterDescriptionField {

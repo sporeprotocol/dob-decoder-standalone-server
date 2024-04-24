@@ -57,6 +57,8 @@ pub enum Error {
     DOBMetadataUnexpected,
     #[error("cached DOB render result file has changed unexpectedly")]
     DOBRenderCacheModified,
+    #[error("invalid deployed on-chain decoder code_hash")]
+    DecoderBinaryHashInvalid,
 }
 
 #[cfg(feature = "standalone_server")]
