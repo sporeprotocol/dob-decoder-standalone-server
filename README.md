@@ -96,3 +96,5 @@ refer to error definitions [here](https://github.com/sporeprotocol/dob-decoder-s
 | 1021 | DOBContentUnexpected |
 | 1022 | DOBMetadataUnexpected |
 | 1023 | DOBRenderCacheModified |
+| 1024 | DecoderBinaryHashInvalid |
+| 1025 | DecoderBinaryNotFoundInCell |

@@ -59,6 +59,8 @@ pub enum Error {
     DOBRenderCacheModified,
     #[error("invalid deployed on-chain decoder code_hash")]
     DecoderBinaryHashInvalid,
+    #[error("no binary found in cell for decoder")]
+    DecoderBinaryNotFoundInCell,
 }
 
 #[cfg(feature = "standalone_server")]
@@ -127,7 +129,7 @@ pub struct SporeContentField {
 pub struct OnchainDecoderDeployment {
     pub code_hash: H256,
     pub tx_hash: H256,
-    pub out_index: usize,
+    pub out_index: u32,
 }
 
 // standalone server settings in TOML format

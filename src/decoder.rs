@@ -6,15 +6,14 @@ use std::{
     thread,
 };
 
-use ckb_jsonrpc_types::Either;
 use ckb_sdk::{
     constants::TYPE_ID_CODE_HASH, rpc::ckb_indexer::Order, traits::CellQueryOptions, CkbRpcClient,
     IndexerRpcClient,
 };
 use ckb_types::{
     core::ScriptHashType,
-    packed::{Script, Transaction},
-    prelude::{Builder, Entity, IntoTransactionView, Pack},
+    packed::{OutPoint, Script},
+    prelude::{Builder, Entity, Pack},
     H256,
 };
 use spore_types::generated::spore::{ClusterData, SporeData};
@@ -268,25 +267,19 @@ impl DOBDecoder {
     fn fetch_decoder_binary_directly(
         &self,
         tx_hash: H256,
-        out_index: usize,
+        out_index: u32,
     ) -> DecodeResult<Vec<u8>> {
-        let decoder_deployment_tx = self
+        let decoder_cell = self
             .ckb_rpc
-            .get_transaction(tx_hash)
-            .map_err(|_| Error::FetchTransactionError)?
-            .ok_or(Error::FetchTransactionError)?
-            .transaction
-            .ok_or(Error::FetchTransactionError)?;
-        let tx = match decoder_deployment_tx.inner {
-            Either::Left(tx) => tx,
-            Either::Right(bytes) => serde_json::from_slice(bytes.as_bytes())
-                .map_err(|_| Error::FetchTransactionError)?,
-        };
-        let tx = Transaction::from(tx.inner).into_view();
-        let (_, decoder_binary) = tx
-            .output_with_data(out_index)
-            .ok_or(Error::NoOutputCellInTransaction)?;
-        Ok(decoder_binary.into())
+            .get_live_cell(OutPoint::new(tx_hash.pack(), out_index).into(), true)
+            .map_err(|_| Error::FetchTransactionError)?;
+        let decoder_binary = decoder_cell
+            .cell
+            .ok_or(Error::NoOutputCellInTransaction)?
+            .data
+            .ok_or(Error::DecoderBinaryNotFoundInCell)?
+            .content;
+        Ok(decoder_binary.as_bytes().to_vec())
     }
 }
 
