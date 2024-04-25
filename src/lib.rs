@@ -14,10 +14,12 @@ mod test {
         SporeContentField,
     };
 
-    const EXPECTED_RENDER_RESULT: &str = "[{\"name\":\"horn\",\"traits\":[{\"String\":\"Gold\"}]},{\"name\":\"wings\",\"traits\":[{\"String\":\"Colorful\"}]},{\"name\":\"body\",\"traits\":[{\"String\":\"White Water\"}]},{\"name\":\"tail\",\"traits\":[{\"String\":\"Colorful\"}]},{\"name\":\"hair\",\"traits\":[{\"String\":\"Yang-Short\"}]},{\"name\":\"horseshoes\",\"traits\":[{\"String\":\"White\"}]},{\"name\":\"talent\",\"traits\":[{\"String\":\"Crown\"}]},{\"name\":\"hp\",\"traits\":[{\"Number\":59576}]},{\"name\":\"lucky\",\"traits\":[{\"Number\":3}]}]";
-    const HEXED_SPORE_ID: &str = "0e61cc8eb420ce4ae44c922bfd17bc12204cf95f017a030f5a108d01339feb78";
-    const SPORE_ID: H256 =
-        h256!("0x0e61cc8eb420ce4ae44c922bfd17bc12204cf95f017a030f5a108d01339feb78");
+    const EXPECTED_UNICORN_RENDER_RESULT: &str = "[{\"name\":\"Spirits\",\"traits\":[{\"String\":\"Metal, Golden Body\"}]},{\"name\":\"Yin Yang\",\"traits\":[{\"String\":\"Yang, Short Hair\"}]},{\"name\":\"Talents\",\"traits\":[{\"String\":\"Forget\"}]},{\"name\":\"Horn\",\"traits\":[{\"String\":\"Necromancer Horn\"}]},{\"name\":\"Wings\",\"traits\":[{\"String\":\"Lightning Wings\"}]},{\"name\":\"Tails\",\"traits\":[{\"String\":\"Dumbledore Tails\"}]},{\"name\":\"Horseshoes\",\"traits\":[{\"String\":\"Colorful Stone Horseshoes\"}]},{\"name\":\"Destiny Number\",\"traits\":[{\"Number\":59576}]},{\"name\":\"Lucky Number\",\"traits\":[{\"Number\":3}]}]";
+    const EXPECTED_NERVAPE_RENDER_RESULT: &str = "[{\"name\":\"prev.type\",\"traits\":[{\"String\":\"text\"}]},{\"name\":\"prev.bg\",\"traits\":[{\"String\":\"btcfs://59e87ca177ef0fd457e87e9f93627660022cf519b531e1f4e3a6dda9e5e33827i0\"}]},{\"name\":\"prev.bgcolor\",\"traits\":[{\"String\":\"#CEBAF7\"}]},{\"name\":\"Background\",\"traits\":[{\"Number\":170}]},{\"name\":\"Suit\",\"traits\":[{\"Number\":236}]},{\"name\":\"Upper body\",\"traits\":[{\"Number\":53}]},{\"name\":\"Lower body\",\"traits\":[{\"Number\":189}]},{\"name\":\"Headwear\",\"traits\":[{\"Number\":175}]},{\"name\":\"Mask\",\"traits\":[{\"Number\":153}]},{\"name\":\"Eyewear\",\"traits\":[{\"Number\":126}]},{\"name\":\"Mouth\",\"traits\":[{\"Number\":14}]},{\"name\":\"Ears\",\"traits\":[{\"Number\":165}]},{\"name\":\"Tattoo\",\"traits\":[{\"Number\":231}]},{\"name\":\"Accessory\",\"traits\":[{\"Number\":78}]},{\"name\":\"Handheld\",\"traits\":[{\"Number\":240}]},{\"name\":\"Special\",\"traits\":[{\"Number\":70}]}]";
+    const HEXED_NERVAPE_SPORE_ID: &str =
+        "9dd9604d44d6640d1533c9f97f89438f17526e645f6c35aa08d8c7d844578580";
+    const NERVAPE_SPORE_ID: H256 =
+        h256!("0x9dd9604d44d6640d1533c9f97f89438f17526e645f6c35aa08d8c7d844578580");
 
     fn prepare_settings(version: &str) -> Settings {
         Settings {
@@ -114,26 +116,26 @@ mod test {
     #[test]
     fn test_decode_unicorn_dna() {
         let render_result = decode_unicorn_dna(false);
-        assert_eq!(render_result, EXPECTED_RENDER_RESULT);
+        assert_eq!(render_result, EXPECTED_UNICORN_RENDER_RESULT);
     }
 
     #[test]
     fn test_decode_unicorn_dna_with_onchain_decoder() {
         let render_result = decode_unicorn_dna(true);
-        assert_eq!(render_result, EXPECTED_RENDER_RESULT);
+        assert_eq!(render_result, EXPECTED_UNICORN_RENDER_RESULT);
     }
 
     #[test]
-    fn test_fetch_and_decode_unicorn_dna() {
+    fn test_fetch_and_decode_nervape_dna() {
         let settings = prepare_settings("text/plain");
         let decoder = DOBDecoder::new(settings);
         let (dob_content, dob_metadata) = decoder
-            .fetch_decode_ingredients(SPORE_ID.into())
+            .fetch_decode_ingredients(NERVAPE_SPORE_ID.into())
             .expect("fetch");
         let render_result = decoder
             .decode_dna(&dob_content, dob_metadata)
             .expect("decode");
-        assert_eq!(render_result, EXPECTED_RENDER_RESULT);
+        assert_eq!(render_result, EXPECTED_NERVAPE_RENDER_RESULT);
     }
 
     #[test]
@@ -141,19 +143,21 @@ mod test {
     fn test_fetch_onchain_dob_failed() {
         let settings = prepare_settings("dob/0");
         DOBDecoder::new(settings)
-            .fetch_decode_ingredients(SPORE_ID.into())
+            .fetch_decode_ingredients(NERVAPE_SPORE_ID.into())
             .expect("fetch");
     }
 
     #[test]
-    fn test_decode_onchain_unicorn_dna_in_thread() {
+    fn test_decode_onchain_nervape_dna_in_thread() {
         let protocol_version = "text/plain";
         let settings = prepare_settings(protocol_version);
         let (decoder, cmd) = DOBThreadDecoder::new(settings);
         decoder.run();
         assert_eq!(cmd.protocol_version(), protocol_version);
-        let (render_result, _) = cmd.decode_dna(HEXED_SPORE_ID).expect("thread decode");
-        assert_eq!(render_result, EXPECTED_RENDER_RESULT);
+        let (render_result, _) = cmd
+            .decode_dna(HEXED_NERVAPE_SPORE_ID)
+            .expect("thread decode");
+        assert_eq!(render_result, EXPECTED_NERVAPE_RENDER_RESULT);
         cmd.stop();
     }
 
