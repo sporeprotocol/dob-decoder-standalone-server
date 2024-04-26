@@ -61,6 +61,23 @@ $ echo '{
 }' \
 | curl -H 'content-type: application/json' -d @- \
 http://localhost:8090
+
+or
+
+$ echo '{
+    "id": 2,
+    "jsonrpc": "2.0",
+    "method": "dob_batch_decode",
+    "params": [
+        [
+            "<spore_id in hex format without 0x prefix>",
+            "<spore_id in hex format without 0x prefix>",
+            ...
+        ]
+    ]
+}' \
+| curl -H 'content-type: application/json' -d @- \
+http://localhost:8090
 ```
 
 ## Protocol version
@@ -95,6 +112,8 @@ refer to error definitions [here](https://github.com/sporeprotocol/dob-decoder-s
 | 1020 | NoOutputCellInTransaction |
 | 1021 | DOBContentUnexpected |
 | 1022 | DOBMetadataUnexpected |
-| 1023 | DOBRenderCacheModified |
-| 1024 | DecoderBinaryHashInvalid |
-| 1025 | DecoderBinaryNotFoundInCell |
+| 1023 | DOBRenderCacheNotFound |
+| 1024 | DOBRenderCacheModified |
+| 1025 | DecoderBinaryHashInvalid |
+| 1026 | DecoderBinaryNotFoundInCell |
+| 1027 | JsonRpcRequestError |

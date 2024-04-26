@@ -1,9 +1,12 @@
-use std::sync::Arc;
+use std::fs;
+use std::path::PathBuf;
 
+use jsonrpsee::core::async_trait;
 use jsonrpsee::{proc_macros::rpc, tracing, types::ErrorCode};
 use serde::Serialize;
 
-use crate::{decoder::DecoderCmdSender, types::SporeContentField};
+use crate::decoder::DOBDecoder;
+use crate::types::{Error, SporeContentField};
 
 // decoding result contains rendered result from native decoder and DNA string for optional use
 #[derive(Serialize, Clone)]
@@ -15,35 +18,84 @@ pub struct ServerDecodeResult {
 #[rpc(server)]
 trait DecoderRpc {
     #[method(name = "dob_protocol_version")]
-    fn protocol_version(&self) -> String;
+    async fn protocol_version(&self) -> String;
 
     #[method(name = "dob_decode")]
-    fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode>;
+    async fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode>;
+
+    #[method(name = "dob_batch_decode")]
+    async fn batch_decode(&self, hexed_spore_ids: Vec<String>) -> Result<Vec<String>, ErrorCode>;
 }
 
 pub struct DecoderStandaloneServer {
-    sender: Arc<DecoderCmdSender>,
+    decoder: DOBDecoder,
 }
 
 impl DecoderStandaloneServer {
-    pub fn new(sender: Arc<DecoderCmdSender>) -> Self {
-        Self { sender }
+    pub fn new(decoder: DOBDecoder) -> Self {
+        Self { decoder }
     }
 }
 
+#[async_trait]
 impl DecoderRpcServer for DecoderStandaloneServer {
-    fn protocol_version(&self) -> String {
-        self.sender.protocol_version()
+    async fn protocol_version(&self) -> String {
+        self.decoder.protocol_version()
     }
 
     // decode DNA in particular spore DOB cell
-    fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode> {
+    async fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode> {
         tracing::info!("decoding spore_id {hexed_spore_id}");
-        let (render_output, dob_content) = self.sender.decode_dna(&hexed_spore_id)?;
+        let spore_id: [u8; 32] = hex::decode(hexed_spore_id)
+            .map_err(|_| Error::HexedSporeIdParseError)?
+            .try_into()
+            .map_err(|_| Error::SporeIdLengthInvalid)?;
+        let mut cache_path = self.decoder.setting().dobs_cache_directory.clone();
+        cache_path.push(format!("{}.dob", hex::encode(&spore_id)));
+        let (render_output, dob_content) = if cache_path.exists() {
+            read_dob_from_cache(cache_path)?
+        } else {
+            let (content, metadata) = self.decoder.fetch_decode_ingredients(spore_id).await?;
+            let render_output = self.decoder.decode_dna(&content, metadata).await?;
+            write_dob_to_cache(&render_output, &content, cache_path)?;
+            (render_output, content)
+        };
         let result = ServerDecodeResult {
             render_output,
             dob_content,
         };
         Ok(serde_json::to_string(&result).unwrap())
     }
+
+    // decode DNA from a set
+    async fn batch_decode(&self, hexed_spore_ids: Vec<String>) -> Result<Vec<String>, ErrorCode> {
+        let mut results = Vec::new();
+        for hexed_spore_id in hexed_spore_ids {
+            results.push(self.decode(hexed_spore_id).await?);
+        }
+        Ok(results)
+    }
+}
+
+pub fn read_dob_from_cache(cache_path: PathBuf) -> Result<(String, SporeContentField), Error> {
+    let file_content = fs::read_to_string(cache_path).map_err(|_| Error::DOBRenderCacheNotFound)?;
+    let mut lines = file_content.split('\n');
+    let (Some(result), Some(content)) = (lines.next(), lines.next()) else {
+        return Err(Error::DOBRenderCacheModified);
+    };
+    match serde_json::from_str::<SporeContentField>(content) {
+        Ok(content) => Ok((result.to_string(), content)),
+        Err(_) => Err(Error::DOBRenderCacheModified),
+    }
+}
+
+pub fn write_dob_to_cache(
+    render_result: &str,
+    dob_content: &SporeContentField,
+    cache_path: PathBuf,
+) -> Result<(), Error> {
+    let json_dob_content = serde_json::to_string(dob_content).unwrap();
+    let file_content = format!("{render_result}\n{json_dob_content}");
+    fs::write(cache_path, file_content).map_err(|_| Error::DOBRenderCacheNotFound)?;
+    Ok(())
 }
