@@ -8,6 +8,7 @@ use jsonrpsee::types::ErrorCode;
 #[cfg(feature = "standalone_server")]
 use serde::Serialize;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(thiserror::Error, Debug)]
 #[repr(i32)]
 pub enum Error {

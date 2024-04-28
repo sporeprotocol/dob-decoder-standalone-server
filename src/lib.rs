@@ -1,9 +1,8 @@
+mod vm;
+
 pub mod client;
 pub mod decoder;
 pub mod types;
-
-#[cfg(feature = "embeded_vm")]
-mod vm;
 
 #[cfg(test)]
 mod test {

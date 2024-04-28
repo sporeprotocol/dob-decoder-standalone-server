@@ -8,8 +8,6 @@ mod client;
 mod decoder;
 mod server;
 mod types;
-
-#[cfg(feature = "embeded_vm")]
 mod vm;
 
 const SETTINGS_FILE: &str = "./settings.toml";

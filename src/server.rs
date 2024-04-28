@@ -24,7 +24,11 @@ trait DecoderRpc {
     async fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode>;
 
     #[method(name = "dob_batch_decode")]
-    async fn batch_decode(&self, hexed_spore_ids: Vec<String>) -> Result<Vec<String>, ErrorCode>;
+    async fn batch_decode(
+        &self,
+        hexed_spore_ids: Vec<String>,
+        restrict: bool,
+    ) -> Result<Vec<String>, ErrorCode>;
 }
 
 pub struct DecoderStandaloneServer {
@@ -51,7 +55,7 @@ impl DecoderRpcServer for DecoderStandaloneServer {
             .try_into()
             .map_err(|_| Error::SporeIdLengthInvalid)?;
         let mut cache_path = self.decoder.setting().dobs_cache_directory.clone();
-        cache_path.push(format!("{}.dob", hex::encode(&spore_id)));
+        cache_path.push(format!("{}.dob", hex::encode(spore_id)));
         let (render_output, dob_content) = if cache_path.exists() {
             read_dob_from_cache(cache_path)?
         } else {
@@ -68,10 +72,25 @@ impl DecoderRpcServer for DecoderStandaloneServer {
     }
 
     // decode DNA from a set
-    async fn batch_decode(&self, hexed_spore_ids: Vec<String>) -> Result<Vec<String>, ErrorCode> {
-        let mut results = Vec::new();
+    async fn batch_decode(
+        &self,
+        hexed_spore_ids: Vec<String>,
+        restrict: bool,
+    ) -> Result<Vec<String>, ErrorCode> {
+        let mut await_results = Vec::new();
         for hexed_spore_id in hexed_spore_ids {
-            results.push(self.decode(hexed_spore_id).await?);
+            await_results.push(self.decode(hexed_spore_id));
+        }
+        let mut results = Vec::new();
+        for result in await_results {
+            if restrict {
+                results.push(result.await?);
+            } else {
+                match result.await {
+                    Ok(result) => results.push(result),
+                    Err(error) => results.push(format!("server error: {error}")),
+                }
+            }
         }
         Ok(results)
     }

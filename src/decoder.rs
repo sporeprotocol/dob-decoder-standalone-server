@@ -108,9 +108,6 @@ impl DOBDecoder {
         };
         let dna = &dob_content.dna;
         let pattern = &dob_metadata.dob.pattern;
-        #[cfg(not(feature = "embeded_vm"))]
-        let raw_render_result = self.execute_externally(decoder_path, dna, pattern)?;
-        #[cfg(feature = "embeded_vm")]
         let raw_render_result = {
             let (exit_code, outputs) = crate::vm::execute_riscv_binary(
                 &decoder_path.to_string_lossy(),
@@ -131,41 +128,41 @@ impl DOBDecoder {
         Ok(raw_render_result)
     }
 
-    // invoke `ckb-vm-runner` in native machine and collect console output as result
-    #[cfg(not(feature = "embeded_vm"))]
-    fn execute_externally(
-        &self,
-        decoder_path: std::path::PathBuf,
-        dna: &str,
-        pattern: &str,
-    ) -> DecodeResult<String> {
-        let output = std::process::Command::new(&self.settings.ckb_vm_runner)
-            .arg(decoder_path)
-            .arg(dna)
-            .arg(pattern)
-            .output()
-            .map_err(|_| Error::DecoderExecutionError)?;
-        let raw_render_result = {
-            let console_output = String::from_utf8_lossy(&output.stdout)
-                .to_string()
-                .replace('\\', "");
-            let lines = console_output
-                .split('\n')
-                .map(|line| line.trim_matches('\"'))
-                .collect::<Vec<_>>();
-            #[cfg(feature = "render_debug")]
-            {
-                println!("-------- DECODE RESULT ---------");
-                lines.iter().for_each(|line| println!("{line}"));
-                println!("-------- DECODE RESULT END ---------");
-            }
-            lines
-                .first()
-                .ok_or(Error::DecoderOutputInvalid)?
-                .to_string()
-        };
-        Ok(raw_render_result)
-    }
+    // // invoke `ckb-vm-runner` in native machine and collect console output as result
+    // #[cfg(not(feature = "embeded_vm"))]
+    // fn execute_externally(
+    //     &self,
+    //     decoder_path: std::path::PathBuf,
+    //     dna: &str,
+    //     pattern: &str,
+    // ) -> DecodeResult<String> {
+    //     let output = std::process::Command::new(&self.settings.ckb_vm_runner)
+    //         .arg(decoder_path)
+    //         .arg(dna)
+    //         .arg(pattern)
+    //         .output()
+    //         .map_err(|_| Error::DecoderExecutionError)?;
+    //     let raw_render_result = {
+    //         let console_output = String::from_utf8_lossy(&output.stdout)
+    //             .to_string()
+    //             .replace('\\', "");
+    //         let lines = console_output
+    //             .split('\n')
+    //             .map(|line| line.trim_matches('\"'))
+    //             .collect::<Vec<_>>();
+    //         #[cfg(feature = "render_debug")]
+    //         {
+    //             println!("-------- DECODE RESULT ---------");
+    //             lines.iter().for_each(|line| println!("{line}"));
+    //             println!("-------- DECODE RESULT END ---------");
+    //         }
+    //         lines
+    //             .first()
+    //             .ok_or(Error::DecoderOutputInvalid)?
+    //             .to_string()
+    //     };
+    //     Ok(raw_render_result)
+    // }
 
     // search on-chain spore cell and return its content field, which represents dob content
     async fn fetch_dob_content(
@@ -300,7 +297,7 @@ fn build_batch_search_options(
     avaliable_code_hashes: &[H256],
 ) -> Vec<CellQueryOptions> {
     avaliable_code_hashes
-        .into_iter()
+        .iter()
         .map(|code_hash| {
             let type_script = Script::new_builder()
                 .code_hash(code_hash.0.pack())

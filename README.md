@@ -73,7 +73,8 @@ $ echo '{
             "<spore_id in hex format without 0x prefix>",
             "<spore_id in hex format without 0x prefix>",
             ...
-        ]
+        ],
+        <true or false, which considers one piece of errors as the whole request error>
     ]
 }' \
 | curl -H 'content-type: application/json' -d @- \

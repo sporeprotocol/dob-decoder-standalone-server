@@ -10,7 +10,7 @@ use reqwest::{Client, Url};
 
 use crate::types::Error;
 
-pub type RPC<T> = Pin<Box<dyn Future<Output = Result<T, Error>> + Send + 'static>>;
+pub type Rpc<T> = Pin<Box<dyn Future<Output = Result<T, Error>> + Send + 'static>>;
 
 #[allow(clippy::upper_case_acronyms)]
 enum Target {
@@ -80,7 +80,7 @@ impl RpcClient {
 }
 
 impl RpcClient {
-    pub fn get_live_cell(&self, out_point: &OutPoint, with_data: bool) -> RPC<CellWithStatus> {
+    pub fn get_live_cell(&self, out_point: &OutPoint, with_data: bool) -> Rpc<CellWithStatus> {
         jsonrpc!(
             "get_live_cell",
             Target::CKB,
@@ -97,7 +97,7 @@ impl RpcClient {
         search_key: SearchKey,
         limit: u32,
         cursor: Option<JsonBytes>,
-    ) -> RPC<Pagination<Cell>> {
+    ) -> Rpc<Pagination<Cell>> {
         let order = Order::Asc;
         let limit = Uint32::from(limit);
 
