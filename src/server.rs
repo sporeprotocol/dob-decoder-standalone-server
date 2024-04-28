@@ -24,11 +24,7 @@ trait DecoderRpc {
     async fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode>;
 
     #[method(name = "dob_batch_decode")]
-    async fn batch_decode(
-        &self,
-        hexed_spore_ids: Vec<String>,
-        restrict: bool,
-    ) -> Result<Vec<String>, ErrorCode>;
+    async fn batch_decode(&self, hexed_spore_ids: Vec<String>) -> Result<Vec<String>, ErrorCode>;
 }
 
 pub struct DecoderStandaloneServer {
@@ -72,26 +68,19 @@ impl DecoderRpcServer for DecoderStandaloneServer {
     }
 
     // decode DNA from a set
-    async fn batch_decode(
-        &self,
-        hexed_spore_ids: Vec<String>,
-        restrict: bool,
-    ) -> Result<Vec<String>, ErrorCode> {
+    async fn batch_decode(&self, hexed_spore_ids: Vec<String>) -> Result<Vec<String>, ErrorCode> {
         let mut await_results = Vec::new();
         for hexed_spore_id in hexed_spore_ids {
             await_results.push(self.decode(hexed_spore_id));
         }
-        let mut results = Vec::new();
-        for result in await_results {
-            if restrict {
-                results.push(result.await?);
-            } else {
-                match result.await {
-                    Ok(result) => results.push(result),
-                    Err(error) => results.push(format!("server error: {error}")),
-                }
-            }
-        }
+        let results = futures::future::join_all(await_results)
+            .await
+            .into_iter()
+            .map(|result| match result {
+                Ok(result) => result,
+                Err(error) => format!("server error: {error}"),
+            })
+            .collect();
         Ok(results)
     }
 }

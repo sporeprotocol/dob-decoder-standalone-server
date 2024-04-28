@@ -3,7 +3,7 @@
 Provide an one-step DOB rendering service to squash a batch of complex steps that from DNA fetching to DOB traits rendering.
 
 Online features:
-- [x] native or embeded `ckb-vm` executor
+- [x] embeded `ckb-vm` executor
 - [x] executable standalone JsonRpc server
 - [x] decoder binaries temporary cache
 - [x] render result temporary cache
@@ -11,18 +11,7 @@ Online features:
 
 ## `ckb-vm` executor
 
-There are two execution modes: native and embeded.
-
-Native mode requires running a pre-installed standalone `ckb-vm` parser in the machine that decoder server runs on, which binary name is highlighted [here](https://github.com/sporeprotocol/dob-decoder-standalone-server/blob/master/settings.toml#L11).
-
-Steps to install a recommended `ckb-vm` runner:
-
-```bash
-$ git clone https://github.com/nervosnetwork/ckb-vm
-$ cargo install --path . --example ckb-vm-runner
-```
-
-Embeded mode is integrating a standalone `ckb-vm` in project to execute decoder binary files, and the corresponding feature is `embeded_vm` which is marked in [default](https://github.com/sporeprotocol/dob-decoder-standalone-server/blob/master/Cargo.toml#L27). We recommend embeded mode for fresh users, because in contrast, the native mode is more like an advanced usage for providing flexibility for user-defined VM environments.
+Embeded VM executor is integrating a standalone `ckb-vm` in project to execute decoder binary files, and the corresponding feature is `embeded_vm` which is marked in [default](https://github.com/sporeprotocol/dob-decoder-standalone-server/blob/master/Cargo.toml#L27). We recommend embeded mode for fresh users, because in contrast, the native mode is more like an advanced usage for providing flexibility for user-defined VM environments.
 
 ## Decoder binaries cache
 
@@ -73,8 +62,7 @@ $ echo '{
             "<spore_id in hex format without 0x prefix>",
             "<spore_id in hex format without 0x prefix>",
             ...
-        ],
-        <true or false, which considers one piece of errors as the whole request error>
+        ]
     ]
 }' \
 | curl -H 'content-type: application/json' -d @- \
