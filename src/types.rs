@@ -8,6 +8,7 @@ use jsonrpsee::types::ErrorCode;
 #[cfg(feature = "standalone_server")]
 use serde::Serialize;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(thiserror::Error, Debug)]
 #[repr(i32)]
 pub enum Error {
@@ -55,12 +56,16 @@ pub enum Error {
     DOBContentUnexpected,
     #[error("cluster description cannot parse to DOB metadata")]
     DOBMetadataUnexpected,
+    #[error("DOB render cache folder not found")]
+    DOBRenderCacheNotFound,
     #[error("cached DOB render result file has changed unexpectedly")]
     DOBRenderCacheModified,
     #[error("invalid deployed on-chain decoder code_hash")]
     DecoderBinaryHashInvalid,
     #[error("no binary found in cell for decoder")]
     DecoderBinaryNotFoundInCell,
+    #[error("error ocurred while requesing json-rpc")]
+    JsonRpcRequestError,
 }
 
 #[cfg(feature = "standalone_server")]
