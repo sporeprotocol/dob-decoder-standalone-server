@@ -116,9 +116,9 @@ pub struct DOBDecoderFormat {
 
 // value on `content` field in Spore data, adapting for DOB protocol in JSON format
 #[derive(Deserialize)]
-#[cfg_attr(feature = "standalone_server", derive(Serialize, Clone))]
-#[cfg_attr(test, derive(PartialEq, Debug))]
-pub struct SporeContentField {
+#[cfg_attr(feature = "standalone_server", derive(Serialize, Clone, Debug))]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct SporeContentFieldObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub block_number: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -126,6 +126,25 @@ pub struct SporeContentField {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<u16>,
     pub dna: String,
+}
+
+#[derive(Deserialize)]
+#[cfg_attr(feature = "standalone_server", derive(Serialize, Clone, Debug))]
+#[cfg_attr(test, derive(PartialEq))]
+pub enum SporeContentField {
+    Object(SporeContentFieldObject),
+    String(String),
+    Array(Vec<String>),
+}
+
+impl SporeContentField {
+    pub fn dna_set(&self) -> Vec<&str> {
+        match self {
+            SporeContentField::Object(val) => vec![&val.dna],
+            SporeContentField::String(val) => vec![&val],
+            SporeContentField::Array(val) => val.iter().map(|x| x.as_str()).collect(),
+        }
+    }
 }
 
 // asscoiate `code_hash` of decoder binary with its onchain deployment information

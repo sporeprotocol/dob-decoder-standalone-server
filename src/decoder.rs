@@ -5,6 +5,7 @@ use ckb_types::{
     prelude::{Builder, Entity, Pack},
     H256,
 };
+use serde_json::Value;
 use spore_types::generated::spore::{ClusterData, SporeData};
 
 use crate::{
@@ -47,13 +48,16 @@ impl DOBDecoder {
     // decode DNA under target spore_id
     pub async fn decode_dna(
         &self,
-        dob_content: &SporeContentField,
+        dna_set: &[&str],
         dob_metadata: ClusterDescriptionField,
     ) -> DecodeResult<String> {
-        let dna = hex::decode(&dob_content.dna).map_err(|_| Error::HexedDNAParseError)?;
-        if dna.len() != dob_metadata.dob.dna_bytes as usize {
-            return Err(Error::DnaLengthNotMatch);
-        }
+        dna_set.iter().try_for_each(|dna| {
+            let decoded_dna = hex::decode(dna).map_err(|_| Error::HexedDNAParseError)?;
+            if decoded_dna.len() != dob_metadata.dob.dna_bytes as usize {
+                return Err(Error::DnaLengthNotMatch);
+            }
+            Ok(())
+        })?;
         let decoder_path = match dob_metadata.dob.decoder.location {
             DecoderLocationType::CodeHash => {
                 let mut decoder_path = self.settings.decoders_cache_directory.clone();
@@ -106,12 +110,18 @@ impl DOBDecoder {
                 decoder_path
             }
         };
-        let dna = &dob_content.dna;
         let pattern = &dob_metadata.dob.pattern;
         let raw_render_result = {
             let (exit_code, outputs) = crate::vm::execute_riscv_binary(
                 &decoder_path.to_string_lossy(),
-                vec![dna.clone().into(), pattern.clone().into()],
+                [
+                    dna_set
+                        .iter()
+                        .map(|dna| (*dna).to_owned().into())
+                        .collect::<Vec<_>>(),
+                    vec![pattern.clone().into()],
+                ]
+                .concat(),
             )
             .map_err(|_| Error::DecoderExecutionError)?;
             #[cfg(feature = "render_debug")]
@@ -205,8 +215,7 @@ impl DOBDecoder {
             .to_opt()
             .ok_or(Error::ClusterIdNotSet)?
             .raw_data();
-        let dob_content = serde_json::from_slice(&molecule_spore_data.content().raw_data())
-            .map_err(|_| Error::DOBContentUnexpected)?;
+        let dob_content = decode_spore_data(&molecule_spore_data.content().raw_data())?;
         Ok((dob_content, cluster_id.to_vec().try_into().unwrap()))
     }
 
@@ -307,4 +316,23 @@ fn build_batch_search_options(
             CellQueryOptions::new_type(type_script)
         })
         .collect()
+}
+
+pub(crate) fn decode_spore_data(spore_data: &[u8]) -> Result<SporeContentField, Error> {
+    let value: Value =
+        serde_json::from_slice(spore_data).map_err(|_| Error::DOBContentUnexpected)?;
+    let dob_content = if value.is_string() {
+        SporeContentField::String(serde_json::from_value(value).unwrap())
+    } else if value.is_array() {
+        SporeContentField::Array(
+            serde_json::from_value(value).map_err(|_| Error::DOBContentUnexpected)?,
+        )
+    } else if value.is_object() {
+        SporeContentField::Object(
+            serde_json::from_value(value).map_err(|_| Error::DOBContentUnexpected)?,
+        )
+    } else {
+        return Err(Error::DOBContentUnexpected);
+    };
+    Ok(dob_content)
 }

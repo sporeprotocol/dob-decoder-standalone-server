@@ -8,10 +8,10 @@ pub mod types;
 mod test {
     use ckb_types::{h256, H256};
 
-    use crate::decoder::DOBDecoder;
+    use crate::decoder::{decode_spore_data, DOBDecoder};
     use crate::types::{
         ClusterDescriptionField, DOBClusterFormat, DOBDecoderFormat, DecoderLocationType, Settings,
-        SporeContentField,
+        SporeContentFieldObject,
     };
 
     const EXPECTED_UNICORN_RENDER_RESULT: &str = "[{\"name\":\"wuxing_yinyang\",\"traits\":[{\"String\":\"3<_>\"}]},{\"name\":\"prev.bgcolor\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['#DBAB00', '#09D3FF', '#A028E9', '#FF3939', '#(135deg, #FE4F4F, #66C084, #00E2E2, #E180E2, #F4EC32)']\"}]},{\"name\":\"prev<%v>\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['#000000', '#000000', '#000000', '#000000', '#000000', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF'])\"}]},{\"name\":\"Spirits\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Metal, Golden Body', 'Wood, Blue Body', 'Water, White Body', 'Fire, Red Body', 'Earth, Colorful Body']\"}]},{\"name\":\"Yin Yang\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair']\"}]},{\"name\":\"Talents\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Guard<~>', 'Death<~>', 'Forget<~>', 'Curse<~>', 'Hermit<~>', 'Attack<~>', 'Revival<~>', 'Summon<~>', 'Prophet<~>', 'Crown<~>']\"}]},{\"name\":\"Horn\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Praetorian Horn', 'Hel Horn', 'Lethe Horn', 'Necromancer Horn', 'Lao Tsu Horn', 'Warrior Horn', 'Shaman Horn', 'Bard Horn', 'Sibyl Horn', 'Caesar Horn']\"}]},{\"name\":\"Wings\",\"traits\":[{\"String\":\"Sun Wings\"}]},{\"name\":\"Tails\",\"traits\":[{\"String\":\"Meteor Tail\"}]},{\"name\":\"Horseshoes\",\"traits\":[{\"String\":\"Silver Horseshoes\"}]},{\"name\":\"Destiny Number\",\"traits\":[{\"Number\":59616}]},{\"name\":\"Lucky Number\",\"traits\":[{\"Number\":35}]}]";
@@ -40,8 +40,8 @@ mod test {
 
     fn generate_nervape_dob_ingredients(
         onchain_decoder: bool,
-    ) -> (SporeContentField, ClusterDescriptionField) {
-        let nervape_content = SporeContentField {
+    ) -> (SporeContentFieldObject, ClusterDescriptionField) {
+        let nervape_content = SporeContentFieldObject {
             id: Some(145),
             dna: "cde3feaaec35bdaf997e0ea5e74ef046".to_string(),
             block_number: None,
@@ -72,8 +72,8 @@ mod test {
 
     fn generate_unicorn_dob_ingredients(
         onchain_decoder: bool,
-    ) -> (SporeContentField, ClusterDescriptionField) {
-        let unicorn_content = SporeContentField {
+    ) -> (SporeContentFieldObject, ClusterDescriptionField) {
+        let unicorn_content = SporeContentFieldObject {
             id: None,
             block_number: Some(120),
             cell_id: Some(11844),
@@ -107,7 +107,7 @@ mod test {
         let decoder = DOBDecoder::new(settings);
         let (unicorn_content, unicorn_metadata) = generate_unicorn_dob_ingredients(onchain_decoder);
         decoder
-            .decode_dna(&unicorn_content, unicorn_metadata)
+            .decode_dna(&[&unicorn_content.dna], unicorn_metadata)
             .await
             .expect("decode")
     }
@@ -133,7 +133,8 @@ mod test {
             .await
             .expect("fetch");
         let render_result = decoder
-            .decode_dna(&dob_content, dob_metadata)
+            .decode_dna(&dob_content.dna_set(), dob_metadata)
+            // array type
             .await
             .expect("decode");
         assert_eq!(render_result, EXPECTED_NERVAPE_RENDER_RESULT);
@@ -156,7 +157,7 @@ mod test {
         let json_unicorn_metadata = serde_json::to_string(&nervape_metadata).unwrap();
         println!("[spore_content] = {json_unicorn_content}");
         println!("[cluster_description] = {json_unicorn_metadata}");
-        let deser_unicorn_content: SporeContentField =
+        let deser_unicorn_content: SporeContentFieldObject =
             serde_json::from_slice(json_unicorn_content.as_bytes()).unwrap();
         let deser_unicorn_metadata: ClusterDescriptionField =
             serde_json::from_slice(json_unicorn_metadata.as_bytes()).unwrap();
@@ -166,16 +167,35 @@ mod test {
 
     #[test]
     fn test_unicorn_json_serde() {
-        let (unicorn_content, unicorn_metadata) = generate_unicorn_dob_ingredients(true);
+        let (unicorn_content, unicorn_metadata) = generate_unicorn_dob_ingredients(false);
         let json_unicorn_content = serde_json::to_string(&unicorn_content).unwrap();
         let json_unicorn_metadata = serde_json::to_string(&unicorn_metadata).unwrap();
         println!("[spore_content] = {json_unicorn_content}");
         println!("[cluster_description] = {json_unicorn_metadata}");
-        let deser_unicorn_content: SporeContentField =
+        let deser_unicorn_content: SporeContentFieldObject =
             serde_json::from_slice(json_unicorn_content.as_bytes()).unwrap();
         let deser_unicorn_metadata: ClusterDescriptionField =
             serde_json::from_slice(json_unicorn_metadata.as_bytes()).unwrap();
         assert_eq!(unicorn_content, deser_unicorn_content);
         assert_eq!(unicorn_metadata, deser_unicorn_metadata);
+    }
+
+    #[test]
+    fn test_decode_multiple_spore_data() {
+        let dna = "eda7a47a751d2dc42d4b724e47cfd67a";
+        [
+            format!("{{\"dna\": \"{dna}\"}}"), // object type
+            format!("[\"{dna}\"]"),            // array type
+            format!("\"{dna}\""),              // string type
+        ]
+        .into_iter()
+        .enumerate()
+        .for_each(|(i, spore_data)| {
+            let dob_content =
+                decode_spore_data(spore_data.as_bytes()).expect(&format!("assert type index {i}"));
+            dob_content.dna_set().into_iter().for_each(|v| {
+                assert_eq!(v, dna, "object type comparison failed");
+            });
+        });
     }
 }
