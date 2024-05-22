@@ -28,8 +28,8 @@ impl DOBDecoder {
         }
     }
 
-    pub fn protocol_version(&self) -> String {
-        self.settings.protocol_version.clone()
+    pub fn protocol_versions(&self) -> Vec<String> {
+        self.settings.protocol_versions.clone()
     }
 
     pub fn setting(&self) -> &Settings {
@@ -204,9 +204,11 @@ impl DOBDecoder {
         let content_type =
             String::from_utf8(molecule_spore_data.content_type().raw_data().to_vec())
                 .map_err(|_| Error::SporeDataContentTypeUncompatible)?;
-        if !content_type
-            .to_string()
-            .starts_with(&self.settings.protocol_version)
+        if !self
+            .settings
+            .protocol_versions
+            .iter()
+            .any(|version| content_type.starts_with(version))
         {
             return Err(Error::DOBVersionUnexpected);
         }

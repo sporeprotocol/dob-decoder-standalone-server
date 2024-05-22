@@ -160,7 +160,7 @@ pub struct OnchainDecoderDeployment {
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
 #[cfg_attr(test, derive(Default))]
 pub struct Settings {
-    pub protocol_version: String,
+    pub protocol_versions: Vec<String>,
     pub ckb_rpc: String,
     pub rpc_server_address: String,
     pub ckb_vm_runner: String,

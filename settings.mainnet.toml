@@ -1,5 +1,7 @@
-# identifier of specific DOB protocol version
-protocol_version = "dob/0"
+# identifier of specific DOB protocol versions
+protocol_versions = [
+    "dob/0"
+]
 
 # connect to the RPC of CKB node
 ckb_rpc = "https://mainnet.ckb.dev/"

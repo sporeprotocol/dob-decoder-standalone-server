@@ -18,7 +18,7 @@ pub struct ServerDecodeResult {
 #[rpc(server)]
 trait DecoderRpc {
     #[method(name = "dob_protocol_version")]
-    async fn protocol_version(&self) -> String;
+    async fn protocol_versions(&self) -> Vec<String>;
 
     #[method(name = "dob_decode")]
     async fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode>;
@@ -39,8 +39,8 @@ impl DecoderStandaloneServer {
 
 #[async_trait]
 impl DecoderRpcServer for DecoderStandaloneServer {
-    async fn protocol_version(&self) -> String {
-        self.decoder.protocol_version()
+    async fn protocol_versions(&self) -> Vec<String> {
+        self.decoder.protocol_versions()
     }
 
     // decode DNA in particular spore DOB cell
