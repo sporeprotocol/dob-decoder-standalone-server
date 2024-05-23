@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use ckb_types::H256;
 use serde::Deserialize;
+use serde_json::Value;
 
 #[cfg(feature = "standalone_server")]
 use jsonrpsee::types::ErrorCode;
@@ -91,7 +92,7 @@ pub struct DOBClusterFormat {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ver: Option<u8>,
     pub decoder: DOBDecoderFormat,
-    pub pattern: String,
+    pub pattern: Value,
 }
 
 // restricted decoder locator type

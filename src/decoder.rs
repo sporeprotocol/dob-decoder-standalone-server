@@ -103,11 +103,14 @@ impl DOBDecoder {
                 decoder_path
             }
         };
-        let pattern = &dob_metadata.dob.pattern;
+        let pattern = match &dob_metadata.dob.pattern {
+            Value::String(string) => string.to_owned(),
+            pattern => pattern.to_string(),
+        };
         let raw_render_result = {
             let (exit_code, outputs) = crate::vm::execute_riscv_binary(
                 &decoder_path.to_string_lossy(),
-                vec![dna.to_owned().into(), pattern.clone().into()],
+                vec![dna.to_owned().into(), pattern.into()],
             )
             .map_err(|_| Error::DecoderExecutionError)?;
             #[cfg(feature = "render_debug")]
