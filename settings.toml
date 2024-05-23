@@ -1,6 +1,7 @@
 # identifier of specific DOB protocol versions
 protocol_versions = [
-    "dob/0"
+    "dob/0",
+    "text/plain" # fast compatible with using spore-demo
 ]
 
 # connect to the RPC of CKB node
@@ -37,4 +38,9 @@ avaliable_cluster_code_hashes = [
 [[onchain_decoder_deployment]]
 code_hash = "0xb82abd59ade361a014f0abb692f71b0feb880693c3ccb95b9137b73551d872ce"
 tx_hash = "0xb2497dc3e616055125ef8276be7ee21986d2cd4b2ce90992725386cabcb6ea7f"
+out_index = 0
+
+[[onchain_decoder_deployment]]
+code_hash = "0xdf2030642f219db0a06f6ee4b160142cc4d668790616b1dc1bdd4e3ff7e3a814"
+tx_hash = "0xe5deff07d226fbd88ae9c406b7ba04f6d9f91c0b733b65c78089c55e660a2c1e"
 out_index = 0
