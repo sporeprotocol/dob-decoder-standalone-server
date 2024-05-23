@@ -51,13 +51,15 @@ impl DOBDecoder {
         dna_set: &[&str],
         dob_metadata: ClusterDescriptionField,
     ) -> DecodeResult<String> {
-        dna_set.iter().try_for_each(|dna| {
-            let decoded_dna = hex::decode(dna).map_err(|_| Error::HexedDNAParseError)?;
-            if decoded_dna.len() != dob_metadata.dob.dna_bytes as usize {
-                return Err(Error::DnaLengthNotMatch);
-            }
-            Ok(())
-        })?;
+        if let Some(dna_length) = dob_metadata.dob.dna_bytes {
+            dna_set.iter().try_for_each(|dna| {
+                let decoded_dna = hex::decode(dna).map_err(|_| Error::HexedDNAParseError)?;
+                if decoded_dna.len() != dna_length as usize {
+                    return Err(Error::DnaLengthNotMatch);
+                }
+                Ok(())
+            })?;
+        }
         let decoder_path = match dob_metadata.dob.decoder.location {
             DecoderLocationType::CodeHash => {
                 let mut decoder_path = self.settings.decoders_cache_directory.clone();

@@ -92,7 +92,9 @@ pub struct DOBClusterFormat {
     pub ver: Option<u8>,
     pub decoder: DOBDecoderFormat,
     pub pattern: String,
-    pub dna_bytes: u8,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dna_bytes: Option<u8>,
 }
 
 // restricted decoder locator type
