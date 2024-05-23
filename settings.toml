@@ -1,7 +1,6 @@
 # identifier of specific DOB protocol versions
 protocol_versions = [
     "dob/0",
-    "text/plain" # fast compatible with using spore-demo
 ]
 
 # connect to the RPC of CKB node
