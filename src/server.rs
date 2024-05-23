@@ -57,10 +57,7 @@ impl DecoderRpcServer for DecoderStandaloneServer {
         } else {
             let (content, metadata) = self.decoder.fetch_decode_ingredients(spore_id).await?;
             println!("content: {content:?}");
-            let render_output = self
-                .decoder
-                .decode_dna(&content.dna_set(), metadata)
-                .await?;
+            let render_output = self.decoder.decode_dna(content.dna()?, metadata).await?;
             write_dob_to_cache(&render_output, &content, cache_path)?;
             (render_output, content)
         };

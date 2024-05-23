@@ -48,18 +48,9 @@ impl DOBDecoder {
     // decode DNA under target spore_id
     pub async fn decode_dna(
         &self,
-        dna_set: &[&str],
+        dna: &str,
         dob_metadata: ClusterDescriptionField,
     ) -> DecodeResult<String> {
-        if let Some(dna_length) = dob_metadata.dob.dna_bytes {
-            dna_set.iter().try_for_each(|dna| {
-                let decoded_dna = hex::decode(dna).map_err(|_| Error::HexedDNAParseError)?;
-                if decoded_dna.len() != dna_length as usize {
-                    return Err(Error::DnaLengthNotMatch);
-                }
-                Ok(())
-            })?;
-        }
         let decoder_path = match dob_metadata.dob.decoder.location {
             DecoderLocationType::CodeHash => {
                 let mut decoder_path = self.settings.decoders_cache_directory.clone();
@@ -116,14 +107,7 @@ impl DOBDecoder {
         let raw_render_result = {
             let (exit_code, outputs) = crate::vm::execute_riscv_binary(
                 &decoder_path.to_string_lossy(),
-                [
-                    dna_set
-                        .iter()
-                        .map(|dna| (*dna).to_owned().into())
-                        .collect::<Vec<_>>(),
-                    vec![pattern.clone().into()],
-                ]
-                .concat(),
+                vec![dna.to_owned().into(), pattern.clone().into()],
             )
             .map_err(|_| Error::DecoderExecutionError)?;
             #[cfg(feature = "render_debug")]

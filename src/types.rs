@@ -92,9 +92,6 @@ pub struct DOBClusterFormat {
     pub ver: Option<u8>,
     pub decoder: DOBDecoderFormat,
     pub pattern: String,
-    #[serde(default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub dna_bytes: Option<u8>,
 }
 
 // restricted decoder locator type
@@ -140,11 +137,14 @@ pub enum SporeContentField {
 }
 
 impl SporeContentField {
-    pub fn dna_set(&self) -> Vec<&str> {
+    pub fn dna(&self) -> Result<&str, Error> {
         match self {
-            SporeContentField::Object(val) => vec![&val.dna],
-            SporeContentField::String(val) => vec![&val],
-            SporeContentField::Array(val) => val.iter().map(|x| x.as_str()).collect(),
+            SporeContentField::Object(val) => Ok(&val.dna),
+            SporeContentField::String(val) => Ok(val),
+            SporeContentField::Array(val) => Ok(val
+                .first()
+                .ok_or(Error::SporeDataUncompatible)
+                .map(|v| v.as_str())?),
         }
     }
 }
