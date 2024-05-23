@@ -5,6 +5,7 @@ use ckb_types::{
     prelude::{Builder, Entity, Pack},
     H256,
 };
+use serde_json::Value;
 use spore_types::generated::spore::{ClusterData, SporeData};
 
 use crate::{
@@ -27,8 +28,8 @@ impl DOBDecoder {
         }
     }
 
-    pub fn protocol_version(&self) -> String {
-        self.settings.protocol_version.clone()
+    pub fn protocol_versions(&self) -> Vec<String> {
+        self.settings.protocol_versions.clone()
     }
 
     pub fn setting(&self) -> &Settings {
@@ -47,13 +48,9 @@ impl DOBDecoder {
     // decode DNA under target spore_id
     pub async fn decode_dna(
         &self,
-        dob_content: &SporeContentField,
+        dna: &str,
         dob_metadata: ClusterDescriptionField,
     ) -> DecodeResult<String> {
-        let dna = hex::decode(&dob_content.dna).map_err(|_| Error::HexedDNAParseError)?;
-        if dna.len() != dob_metadata.dob.dna_bytes as usize {
-            return Err(Error::DnaLengthNotMatch);
-        }
         let decoder_path = match dob_metadata.dob.decoder.location {
             DecoderLocationType::CodeHash => {
                 let mut decoder_path = self.settings.decoders_cache_directory.clone();
@@ -106,12 +103,11 @@ impl DOBDecoder {
                 decoder_path
             }
         };
-        let dna = &dob_content.dna;
         let pattern = &dob_metadata.dob.pattern;
         let raw_render_result = {
             let (exit_code, outputs) = crate::vm::execute_riscv_binary(
                 &decoder_path.to_string_lossy(),
-                vec![dna.clone().into(), pattern.clone().into()],
+                vec![dna.to_owned().into(), pattern.clone().into()],
             )
             .map_err(|_| Error::DecoderExecutionError)?;
             #[cfg(feature = "render_debug")]
@@ -194,9 +190,11 @@ impl DOBDecoder {
         let content_type =
             String::from_utf8(molecule_spore_data.content_type().raw_data().to_vec())
                 .map_err(|_| Error::SporeDataContentTypeUncompatible)?;
-        if !content_type
-            .to_string()
-            .starts_with(&self.settings.protocol_version)
+        if !self
+            .settings
+            .protocol_versions
+            .iter()
+            .any(|version| content_type.starts_with(version))
         {
             return Err(Error::DOBVersionUnexpected);
         }
@@ -205,8 +203,7 @@ impl DOBDecoder {
             .to_opt()
             .ok_or(Error::ClusterIdNotSet)?
             .raw_data();
-        let dob_content = serde_json::from_slice(&molecule_spore_data.content().raw_data())
-            .map_err(|_| Error::DOBContentUnexpected)?;
+        let dob_content = decode_spore_data(&molecule_spore_data.content().raw_data())?;
         Ok((dob_content, cluster_id.to_vec().try_into().unwrap()))
     }
 
@@ -307,4 +304,23 @@ fn build_batch_search_options(
             CellQueryOptions::new_type(type_script)
         })
         .collect()
+}
+
+pub(crate) fn decode_spore_data(spore_data: &[u8]) -> Result<SporeContentField, Error> {
+    let value: Value =
+        serde_json::from_slice(spore_data).map_err(|_| Error::DOBContentUnexpected)?;
+    let dob_content = if value.is_string() {
+        SporeContentField::String(serde_json::from_value(value).unwrap())
+    } else if value.is_array() {
+        SporeContentField::Array(
+            serde_json::from_value(value).map_err(|_| Error::DOBContentUnexpected)?,
+        )
+    } else if value.is_object() {
+        SporeContentField::Object(
+            serde_json::from_value(value).map_err(|_| Error::DOBContentUnexpected)?,
+        )
+    } else {
+        return Err(Error::DOBContentUnexpected);
+    };
+    Ok(dob_content)
 }

@@ -92,7 +92,6 @@ pub struct DOBClusterFormat {
     pub ver: Option<u8>,
     pub decoder: DOBDecoderFormat,
     pub pattern: String,
-    pub dna_bytes: u8,
 }
 
 // restricted decoder locator type
@@ -116,9 +115,9 @@ pub struct DOBDecoderFormat {
 
 // value on `content` field in Spore data, adapting for DOB protocol in JSON format
 #[derive(Deserialize)]
-#[cfg_attr(feature = "standalone_server", derive(Serialize, Clone))]
-#[cfg_attr(test, derive(PartialEq, Debug))]
-pub struct SporeContentField {
+#[cfg_attr(feature = "standalone_server", derive(Serialize, Clone, Debug))]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct SporeContentFieldObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub block_number: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -126,6 +125,28 @@ pub struct SporeContentField {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<u16>,
     pub dna: String,
+}
+
+#[derive(Deserialize)]
+#[cfg_attr(feature = "standalone_server", derive(Serialize, Clone, Debug))]
+#[cfg_attr(test, derive(PartialEq))]
+pub enum SporeContentField {
+    Object(SporeContentFieldObject),
+    String(String),
+    Array(Vec<String>),
+}
+
+impl SporeContentField {
+    pub fn dna(&self) -> Result<&str, Error> {
+        match self {
+            SporeContentField::Object(val) => Ok(&val.dna),
+            SporeContentField::String(val) => Ok(val),
+            SporeContentField::Array(val) => Ok(val
+                .first()
+                .ok_or(Error::SporeDataUncompatible)
+                .map(|v| v.as_str())?),
+        }
+    }
 }
 
 // asscoiate `code_hash` of decoder binary with its onchain deployment information
@@ -141,7 +162,7 @@ pub struct OnchainDecoderDeployment {
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
 #[cfg_attr(test, derive(Default))]
 pub struct Settings {
-    pub protocol_version: String,
+    pub protocol_versions: Vec<String>,
     pub ckb_rpc: String,
     pub rpc_server_address: String,
     pub ckb_vm_runner: String,
