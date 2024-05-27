@@ -32,10 +32,10 @@ fn prepare_settings(version: &str) -> Settings {
             },
             OnchainDecoderDeployment {
                 code_hash: h256!(
-                    "0xdf2030642f219db0a06f6ee4b160142cc4d668790616b1dc1bdd4e3ff7e3a814"
+                    "0x32f29aba4b17f3d05bec8cec55d50ef86766fd0bf82fdedaa14269f344d3784a"
                 ),
                 tx_hash: h256!(
-                    "0xe5deff07d226fbd88ae9c406b7ba04f6d9f91c0b733b65c78089c55e660a2c1e"
+                    "0x987cf95d129a2dcc2cdf7bd387c1bd888fa407e3c5a3d511fd80c80dcf6c6b67"
                 ),
                 out_index: 0,
             },
