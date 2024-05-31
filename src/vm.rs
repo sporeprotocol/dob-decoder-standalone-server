@@ -1,16 +1,14 @@
 // refer to https://github.com/nervosnetwork/ckb-vm/blob/develop/examples/ckb-vm-runner.rs
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use ckb_vm::cost_model::estimate_cycles;
 use ckb_vm::registers::{A0, A7};
 use ckb_vm::{Bytes, Memory, Register, SupportMachine, Syscalls};
 
-lazy_static::lazy_static!(
-    static ref OUTPUT_COLLECTOR: Mutex<Vec<String>> = Mutex::new(Vec::new());
-);
-
-struct DebugSyscall {}
+struct DebugSyscall {
+    output: Arc<Mutex<Vec<String>>>,
+}
 
 impl<Mac: SupportMachine> Syscalls<Mac> for DebugSyscall {
     fn initialize(&mut self, _machine: &mut Mac) -> Result<(), ckb_vm::error::Error> {
@@ -38,14 +36,25 @@ impl<Mac: SupportMachine> Syscalls<Mac> for DebugSyscall {
             addr += 1;
         }
 
-        let s = String::from_utf8(buffer).unwrap();
-        OUTPUT_COLLECTOR.lock().unwrap().push(s);
+        self.output
+            .clone()
+            .lock()
+            .unwrap()
+            .push(String::from_utf8(buffer).unwrap());
 
         Ok(true)
     }
 }
 
-fn main_asm(code: Bytes, args: Vec<Bytes>) -> Result<i8, Box<dyn std::error::Error>> {
+fn main_asm(
+    code: Bytes,
+    args: Vec<Bytes>,
+) -> Result<(i8, Vec<String>), Box<dyn std::error::Error>> {
+    let debug_result = Arc::new(Mutex::new(Vec::new()));
+    let debug = Box::new(DebugSyscall {
+        output: debug_result.clone(),
+    });
+
     let asm_core = ckb_vm::machine::asm::AsmCoreMachine::new(
         ckb_vm::ISA_IMC | ckb_vm::ISA_B | ckb_vm::ISA_MOP | ckb_vm::ISA_A,
         ckb_vm::machine::VERSION2,
@@ -53,11 +62,14 @@ fn main_asm(code: Bytes, args: Vec<Bytes>) -> Result<i8, Box<dyn std::error::Err
     );
     let core = ckb_vm::DefaultMachineBuilder::new(asm_core)
         .instruction_cycle_func(Box::new(estimate_cycles))
-        .syscall(Box::new(DebugSyscall {}))
+        .syscall(debug)
         .build();
     let mut machine = ckb_vm::machine::asm::AsmMachine::new(core);
     machine.load_program(&code, &args)?;
-    Ok(machine.run()?)
+
+    let error_code = machine.run()?;
+    let result = debug_result.lock().unwrap().clone();
+    Ok((error_code, result))
 }
 
 pub fn execute_riscv_binary(
@@ -65,9 +77,5 @@ pub fn execute_riscv_binary(
     args: Vec<Bytes>,
 ) -> Result<(i8, Vec<String>), Box<dyn std::error::Error>> {
     let code = std::fs::read(binary_path)?.into();
-    OUTPUT_COLLECTOR.lock().unwrap().clear();
-    Ok((
-        main_asm(code, args)?,
-        OUTPUT_COLLECTOR.lock().unwrap().clone(),
-    ))
+    Ok(main_asm(code, args)?)
 }
