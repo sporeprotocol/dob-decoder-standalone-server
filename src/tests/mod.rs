@@ -1,6 +1,6 @@
 use ckb_types::h256;
 
-use crate::types::{OnchainDecoderDeployment, Settings};
+use crate::types::{HashType, OnchainDecoderDeployment, ScriptId, Settings};
 
 mod decoder;
 mod legacy_decoder;
@@ -12,13 +12,33 @@ fn prepare_settings(version: &str) -> Settings {
         ckb_vm_runner: "ckb-vm-runner".to_string(),
         decoders_cache_directory: "cache/decoders".parse().unwrap(),
         dobs_cache_directory: "cache/dobs".parse().unwrap(),
-        avaliable_spore_code_hashes: vec![
-            h256!("0x685a60219309029d01310311dba953d67029170ca4848a4ff638e57002130a0d"),
-            h256!("0x5e063b4c0e7abeaa6a428df3b693521a3050934cf3b0ae97a800d1bc31449398"),
+        available_spores: vec![
+            ScriptId {
+                code_hash: h256!(
+                    "0x685a60219309029d01310311dba953d67029170ca4848a4ff638e57002130a0d"
+                ),
+                hash_type: HashType::Data1,
+            },
+            ScriptId {
+                code_hash: h256!(
+                    "0x5e063b4c0e7abeaa6a428df3b693521a3050934cf3b0ae97a800d1bc31449398"
+                ),
+                hash_type: HashType::Data1,
+            },
         ],
-        avaliable_cluster_code_hashes: vec![
-            h256!("0x0bbe768b519d8ea7b96d58f1182eb7e6ef96c541fbd9526975077ee09f049058"),
-            h256!("0x7366a61534fa7c7e6225ecc0d828ea3b5366adec2b58206f2ee84995fe030075"),
+        available_clusters: vec![
+            ScriptId {
+                code_hash: h256!(
+                    "0x0bbe768b519d8ea7b96d58f1182eb7e6ef96c541fbd9526975077ee09f049058"
+                ),
+                hash_type: HashType::Data1,
+            },
+            ScriptId {
+                code_hash: h256!(
+                    "0x7366a61534fa7c7e6225ecc0d828ea3b5366adec2b58206f2ee84995fe030075"
+                ),
+                hash_type: HashType::Data1,
+            },
         ],
         onchain_decoder_deployment: vec![
             OnchainDecoderDeployment {

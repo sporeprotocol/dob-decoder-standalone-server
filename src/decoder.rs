@@ -10,7 +10,9 @@ use spore_types::generated::spore::{ClusterData, SporeData};
 
 use crate::{
     client::RpcClient,
-    types::{ClusterDescriptionField, DecoderLocationType, Error, Settings, SporeContentField},
+    types::{
+        ClusterDescriptionField, DecoderLocationType, Error, ScriptId, Settings, SporeContentField,
+    },
 };
 
 type DecodeResult<T> = Result<T, Error>;
@@ -170,7 +172,7 @@ impl DOBDecoder {
     ) -> DecodeResult<(SporeContentField, [u8; 32])> {
         let mut spore_cell = None;
         for spore_search_option in
-            build_batch_search_options(spore_id, &self.settings.avaliable_spore_code_hashes)
+            build_batch_search_options(spore_id, &self.settings.available_spores)
         {
             spore_cell = self
                 .rpc
@@ -217,7 +219,7 @@ impl DOBDecoder {
     ) -> DecodeResult<ClusterDescriptionField> {
         let mut cluster_cell = None;
         for cluster_search_option in
-            build_batch_search_options(cluster_id, &self.settings.avaliable_cluster_code_hashes)
+            build_batch_search_options(cluster_id, &self.settings.available_clusters)
         {
             cluster_cell = self
                 .rpc
@@ -294,18 +296,24 @@ fn build_type_id_search_option(type_id_args: [u8; 32]) -> CellQueryOptions {
 
 fn build_batch_search_options(
     type_args: [u8; 32],
-    avaliable_code_hashes: &[H256],
+    available_script_ids: &[ScriptId],
 ) -> Vec<CellQueryOptions> {
-    avaliable_code_hashes
+    available_script_ids
         .iter()
-        .map(|code_hash| {
-            let type_script = Script::new_builder()
-                .code_hash(code_hash.0.pack())
-                .hash_type(ScriptHashType::Data1.into())
-                .args(type_args.to_vec().pack())
-                .build();
-            CellQueryOptions::new_type(type_script)
-        })
+        .map(
+            |ScriptId {
+                 code_hash,
+                 hash_type,
+             }| {
+                let hash_type: ScriptHashType = hash_type.into();
+                let type_script = Script::new_builder()
+                    .code_hash(code_hash.0.pack())
+                    .hash_type(hash_type.into())
+                    .args(type_args.to_vec().pack())
+                    .build();
+                CellQueryOptions::new_type(type_script)
+            },
+        )
         .collect()
 }
 

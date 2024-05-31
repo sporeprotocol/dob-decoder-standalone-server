@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use ckb_types::H256;
+use ckb_types::{core::ScriptHashType, H256};
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -159,6 +159,38 @@ pub struct OnchainDecoderDeployment {
     pub out_index: u32,
 }
 
+#[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
+#[cfg_attr(test, derive(Default))]
+pub enum HashType {
+    #[serde(rename(serialize = "data", deserialize = "data"))]
+    #[cfg_attr(test, default)]
+    Data,
+    #[serde(rename(serialize = "data1", deserialize = "data1"))]
+    Data1,
+    #[serde(rename(serialize = "data2", deserialize = "data2"))]
+    Data2,
+    #[serde(rename(serialize = "type", deserialize = "type"))]
+    Type,
+}
+
+impl Into<ScriptHashType> for &HashType {
+    fn into(self) -> ScriptHashType {
+        match self {
+            HashType::Data => ScriptHashType::Data,
+            HashType::Data1 => ScriptHashType::Data1,
+            HashType::Data2 => ScriptHashType::Data2,
+            HashType::Type => ScriptHashType::Type,
+        }
+    }
+}
+
+#[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
+#[cfg_attr(test, derive(Default))]
+pub struct ScriptId {
+    pub code_hash: H256,
+    pub hash_type: HashType,
+}
+
 // standalone server settings in TOML format
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
 #[cfg_attr(test, derive(Default))]
@@ -170,6 +202,6 @@ pub struct Settings {
     pub decoders_cache_directory: PathBuf,
     pub dobs_cache_directory: PathBuf,
     pub onchain_decoder_deployment: Vec<OnchainDecoderDeployment>,
-    pub avaliable_spore_code_hashes: Vec<H256>,
-    pub avaliable_cluster_code_hashes: Vec<H256>,
+    pub available_spores: Vec<ScriptId>,
+    pub available_clusters: Vec<ScriptId>,
 }
