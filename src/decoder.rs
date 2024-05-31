@@ -310,6 +310,10 @@ fn build_batch_search_options(
 }
 
 pub(crate) fn decode_spore_data(spore_data: &[u8]) -> Result<SporeContentField, Error> {
+    if spore_data[0] == 0u8 {
+        return Ok(SporeContentField::String(hex::encode(&spore_data[1..])));
+    }
+
     let value: Value =
         serde_json::from_slice(spore_data).map_err(|_| Error::DOBContentUnexpected)?;
     let dob_content = if value.is_string() {
