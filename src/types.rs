@@ -114,42 +114,6 @@ pub struct DOBDecoderFormat {
     pub hash: H256,
 }
 
-// value on `content` field in Spore data, adapting for DOB protocol in JSON format
-#[derive(Deserialize)]
-#[cfg_attr(feature = "standalone_server", derive(Serialize, Clone, Debug))]
-#[cfg_attr(test, derive(PartialEq))]
-pub struct SporeContentFieldObject {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub block_number: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cell_id: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<u16>,
-    pub dna: String,
-}
-
-#[derive(Deserialize)]
-#[cfg_attr(feature = "standalone_server", derive(Serialize, Clone, Debug))]
-#[cfg_attr(test, derive(PartialEq))]
-pub enum SporeContentField {
-    Object(SporeContentFieldObject),
-    String(String),
-    Array(Vec<String>),
-}
-
-impl SporeContentField {
-    pub fn dna(&self) -> Result<&str, Error> {
-        match self {
-            SporeContentField::Object(val) => Ok(&val.dna),
-            SporeContentField::String(val) => Ok(val),
-            SporeContentField::Array(val) => Ok(val
-                .first()
-                .ok_or(Error::SporeDataUncompatible)
-                .map(|v| v.as_str())?),
-        }
-    }
-}
-
 // asscoiate `code_hash` of decoder binary with its onchain deployment information
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
 #[cfg_attr(test, derive(Default))]
