@@ -10,7 +10,7 @@ use spore_types::generated::spore::{ClusterData, SporeData};
 
 use crate::{
     client::RpcClient,
-    types::{ClusterDescriptionField, DecoderLocationType, Error, Settings, SporeContentField},
+    types::{ClusterDescriptionField, DecoderLocationType, Error, ScriptId, Settings},
 };
 
 type DecodeResult<T> = Result<T, Error>;
@@ -39,10 +39,10 @@ impl DOBDecoder {
     pub async fn fetch_decode_ingredients(
         &self,
         spore_id: [u8; 32],
-    ) -> DecodeResult<(SporeContentField, ClusterDescriptionField)> {
-        let (dob_content, cluster_id) = self.fetch_dob_content(spore_id).await?;
+    ) -> DecodeResult<((Value, String), ClusterDescriptionField)> {
+        let (content, cluster_id) = self.fetch_dob_content(spore_id).await?;
         let dob_metadata = self.fetch_dob_metadata(cluster_id).await?;
-        Ok((dob_content, dob_metadata))
+        Ok((content, dob_metadata))
     }
 
     // decode DNA under target spore_id
@@ -167,10 +167,10 @@ impl DOBDecoder {
     async fn fetch_dob_content(
         &self,
         spore_id: [u8; 32],
-    ) -> DecodeResult<(SporeContentField, [u8; 32])> {
+    ) -> DecodeResult<((Value, String), [u8; 32])> {
         let mut spore_cell = None;
         for spore_search_option in
-            build_batch_search_options(spore_id, &self.settings.avaliable_spore_code_hashes)
+            build_batch_search_options(spore_id, &self.settings.available_spores)
         {
             spore_cell = self
                 .rpc
@@ -217,7 +217,7 @@ impl DOBDecoder {
     ) -> DecodeResult<ClusterDescriptionField> {
         let mut cluster_cell = None;
         for cluster_search_option in
-            build_batch_search_options(cluster_id, &self.settings.avaliable_cluster_code_hashes)
+            build_batch_search_options(cluster_id, &self.settings.available_clusters)
         {
             cluster_cell = self
                 .rpc
@@ -294,36 +294,47 @@ fn build_type_id_search_option(type_id_args: [u8; 32]) -> CellQueryOptions {
 
 fn build_batch_search_options(
     type_args: [u8; 32],
-    avaliable_code_hashes: &[H256],
+    available_script_ids: &[ScriptId],
 ) -> Vec<CellQueryOptions> {
-    avaliable_code_hashes
+    available_script_ids
         .iter()
-        .map(|code_hash| {
-            let type_script = Script::new_builder()
-                .code_hash(code_hash.0.pack())
-                .hash_type(ScriptHashType::Data1.into())
-                .args(type_args.to_vec().pack())
-                .build();
-            CellQueryOptions::new_type(type_script)
-        })
+        .map(
+            |ScriptId {
+                 code_hash,
+                 hash_type,
+             }| {
+                let hash_type: ScriptHashType = hash_type.into();
+                let type_script = Script::new_builder()
+                    .code_hash(code_hash.0.pack())
+                    .hash_type(hash_type.into())
+                    .args(type_args.to_vec().pack())
+                    .build();
+                CellQueryOptions::new_type(type_script)
+            },
+        )
         .collect()
 }
 
-pub(crate) fn decode_spore_data(spore_data: &[u8]) -> Result<SporeContentField, Error> {
+pub(crate) fn decode_spore_data(spore_data: &[u8]) -> Result<(Value, String), Error> {
+    if spore_data[0] == 0u8 {
+        let dna = hex::encode(&spore_data[1..]);
+        return Ok((serde_json::Value::String(dna.clone()), dna));
+    }
+
     let value: Value =
         serde_json::from_slice(spore_data).map_err(|_| Error::DOBContentUnexpected)?;
-    let dob_content = if value.is_string() {
-        SporeContentField::String(serde_json::from_value(value).unwrap())
-    } else if value.is_array() {
-        SporeContentField::Array(
-            serde_json::from_value(value).map_err(|_| Error::DOBContentUnexpected)?,
-        )
-    } else if value.is_object() {
-        SporeContentField::Object(
-            serde_json::from_value(value).map_err(|_| Error::DOBContentUnexpected)?,
-        )
-    } else {
-        return Err(Error::DOBContentUnexpected);
+    let dna = match &value {
+        serde_json::Value::String(_) => &value,
+        serde_json::Value::Array(array) => array.first().ok_or(Error::DOBContentUnexpected)?,
+        serde_json::Value::Object(object) => {
+            object.get("dna").ok_or(Error::DOBContentUnexpected)?
+        }
+        _ => return Err(Error::DOBContentUnexpected),
     };
-    Ok(dob_content)
+    let dna = match dna {
+        serde_json::Value::String(string) => string.to_owned(),
+        _ => return Err(Error::DOBContentUnexpected),
+    };
+
+    Ok((value, dna))
 }

@@ -1,10 +1,10 @@
 use ckb_types::{h256, H256};
+use serde_json::{json, Value};
 
 use crate::decoder::DOBDecoder;
 use crate::tests::prepare_settings;
 use crate::types::{
     ClusterDescriptionField, DOBClusterFormat, DOBDecoderFormat, DecoderLocationType,
-    SporeContentFieldObject,
 };
 
 const EXPECTED_UNICORN_RENDER_RESULT: &str = "[{\"name\":\"wuxing_yinyang\",\"traits\":[{\"String\":\"3<_>\"}]},{\"name\":\"prev.bgcolor\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['#DBAB00', '#09D3FF', '#A028E9', '#FF3939', '#(135deg, #FE4F4F, #66C084, #00E2E2, #E180E2, #F4EC32)']\"}]},{\"name\":\"prev<%v>\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['#000000', '#000000', '#000000', '#000000', '#000000', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF'])\"}]},{\"name\":\"Spirits\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Metal, Golden Body', 'Wood, Blue Body', 'Water, White Body', 'Fire, Red Body', 'Earth, Colorful Body']\"}]},{\"name\":\"Yin Yang\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair']\"}]},{\"name\":\"Talents\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Guard<~>', 'Death<~>', 'Forget<~>', 'Curse<~>', 'Hermit<~>', 'Attack<~>', 'Revival<~>', 'Summon<~>', 'Prophet<~>', 'Crown<~>']\"}]},{\"name\":\"Horn\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Praetorian Horn', 'Hel Horn', 'Lethe Horn', 'Necromancer Horn', 'Lao Tsu Horn', 'Warrior Horn', 'Shaman Horn', 'Bard Horn', 'Sibyl Horn', 'Caesar Horn']\"}]},{\"name\":\"Wings\",\"traits\":[{\"String\":\"Sun Wings\"}]},{\"name\":\"Tail\",\"traits\":[{\"String\":\"Meteor Tail\"}]},{\"name\":\"Horseshoes\",\"traits\":[{\"String\":\"Silver Horseshoes\"}]},{\"name\":\"Destiny Number\",\"traits\":[{\"Number\":65321}]},{\"name\":\"Lucky Number\",\"traits\":[{\"Number\":35}]}]";
@@ -15,15 +15,12 @@ const UNICORN_SPORE_ID: H256 =
 const EXAMPLE_SPORE_ID: H256 =
     h256!("0x683d0362a2e67d6edc80e3bf16136fae8a7fba21f6cb013931c5994c9ddb8d70");
 
-fn generate_unicorn_dob_ingredients(
-    onchain_decoder: bool,
-) -> (SporeContentFieldObject, ClusterDescriptionField) {
-    let unicorn_content = SporeContentFieldObject {
-        id: None,
-        block_number: Some(120),
-        cell_id: Some(11844),
-        dna: "df4ffcb5e7a283ea7e6f09a504d0e256".to_string(),
-    };
+fn generate_unicorn_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDescriptionField) {
+    let unicorn_content = json!({
+        "block_number": 120,
+        "cell_id": 11844,
+        "dna": "df4ffcb5e7a283ea7e6f09a504d0e256",
+    });
     let decoder = if onchain_decoder {
         DOBDecoderFormat {
             location: DecoderLocationType::TypeId,
@@ -46,15 +43,12 @@ fn generate_unicorn_dob_ingredients(
     (unicorn_content, unicorn_metadata)
 }
 
-fn generate_example_dob_ingredients(
-    onchain_decoder: bool,
-) -> (SporeContentFieldObject, ClusterDescriptionField) {
-    let unicorn_content = SporeContentFieldObject {
-        id: None,
-        block_number: Some(120),
-        cell_id: Some(11844),
-        dna: "df4ffcb5e7a283ea7e6f09a504d0e256".to_string(),
-    };
+fn generate_example_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDescriptionField) {
+    let unicorn_content = json!({
+        "block_number": 120,
+        "cell_id": 11844,
+        "dna": "df4ffcb5e7a283ea7e6f09a504d0e256"
+    });
     let decoder = if onchain_decoder {
         DOBDecoderFormat {
             location: DecoderLocationType::TypeId,
@@ -81,12 +75,12 @@ fn generate_example_dob_ingredients(
 async fn test_fetch_and_decode_unicorn_dna() {
     let settings = prepare_settings("text/plain");
     let decoder = DOBDecoder::new(settings);
-    let (dob_content, dob_metadata) = decoder
+    let ((_, dna), dob_metadata) = decoder
         .fetch_decode_ingredients(UNICORN_SPORE_ID.into())
         .await
         .expect("fetch");
     let render_result = decoder
-        .decode_dna(&dob_content.dna().unwrap(), dob_metadata)
+        .decode_dna(&dna, dob_metadata)
         // array type
         .await
         .expect("decode");
@@ -100,7 +94,7 @@ fn test_unicorn_json_serde() {
     let json_unicorn_metadata = serde_json::to_string(&unicorn_metadata).unwrap();
     println!("[spore_content] = {json_unicorn_content}");
     println!("[cluster_description] = {json_unicorn_metadata}");
-    let deser_unicorn_content: SporeContentFieldObject =
+    let deser_unicorn_content: Value =
         serde_json::from_slice(json_unicorn_content.as_bytes()).unwrap();
     let deser_unicorn_metadata: ClusterDescriptionField =
         serde_json::from_slice(json_unicorn_metadata.as_bytes()).unwrap();
@@ -112,12 +106,12 @@ fn test_unicorn_json_serde() {
 async fn test_fetch_and_decode_example_dna() {
     let settings = prepare_settings("text/plain");
     let decoder = DOBDecoder::new(settings);
-    let (dob_content, dob_metadata) = decoder
+    let ((_, dna), dob_metadata) = decoder
         .fetch_decode_ingredients(EXAMPLE_SPORE_ID.into())
         .await
         .expect("fetch");
     let render_result = decoder
-        .decode_dna(&dob_content.dna().unwrap(), dob_metadata)
+        .decode_dna(&dna, dob_metadata)
         // array type
         .await
         .expect("decode");

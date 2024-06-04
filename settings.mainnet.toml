@@ -20,15 +20,15 @@ dobs_cache_directory = "cache/dobs"
 
 # all deployed on-chain Spore contracts binary hash (order from new to old)
 # refer to: https://github.com/sporeprotocol/spore-contract/blob/master/docs/VERSIONS.md
-avaliable_spore_code_hashes = [
-    "0x4a4dce1df3dffff7f8b2cd7dff7303df3b6150c9788cb75dcf6747247132b9f5",
-]
+[[available_spores]]
+code_hash = "0x4a4dce1df3dffff7f8b2cd7dff7303df3b6150c9788cb75dcf6747247132b9f5"
+hash_type = "data1"
 
 # all deployed on-chain Cluster contracts binary hash (order from new to old)
 # refer to: https://github.com/sporeprotocol/spore-contract/blob/master/docs/VERSIONS.md
-avaliable_cluster_code_hashes = [
-    "0x7366a61534fa7c7e6225ecc0d828ea3b5366adec2b58206f2ee84995fe030075",
-]
+[[available_clusters]]
+code_hash = "0x7366a61534fa7c7e6225ecc0d828ea3b5366adec2b58206f2ee84995fe030075"
+hash_type = "data1"
 
 # associate `code_hash` with the corresponding onchain information about `tx_hash` and `out_index`
 # server will firstly search onchain decoders by `code_hash` in this configuration, if not found, cache will be used instead

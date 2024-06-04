@@ -4,15 +4,16 @@ use std::path::PathBuf;
 use jsonrpsee::core::async_trait;
 use jsonrpsee::{proc_macros::rpc, tracing, types::ErrorCode};
 use serde::Serialize;
+use serde_json::Value;
 
 use crate::decoder::DOBDecoder;
-use crate::types::{Error, SporeContentField};
+use crate::types::Error;
 
 // decoding result contains rendered result from native decoder and DNA string for optional use
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct ServerDecodeResult {
     render_output: String,
-    dob_content: SporeContentField,
+    dob_content: Value,
 }
 
 #[rpc(server)]
@@ -46,7 +47,7 @@ impl DecoderRpcServer for DecoderStandaloneServer {
     // decode DNA in particular spore DOB cell
     async fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode> {
         tracing::info!("decoding spore_id {hexed_spore_id}");
-        let spore_id: [u8; 32] = hex::decode(hexed_spore_id)
+        let spore_id: [u8; 32] = hex::decode(hexed_spore_id.clone())
             .map_err(|_| Error::HexedSporeIdParseError)?
             .try_into()
             .map_err(|_| Error::SporeIdLengthInvalid)?;
@@ -55,17 +56,19 @@ impl DecoderRpcServer for DecoderStandaloneServer {
         let (render_output, dob_content) = if cache_path.exists() {
             read_dob_from_cache(cache_path)?
         } else {
-            let (content, metadata) = self.decoder.fetch_decode_ingredients(spore_id).await?;
-            println!("content: {content:?}");
-            let render_output = self.decoder.decode_dna(content.dna()?, metadata).await?;
+            let ((content, dna), metadata) =
+                self.decoder.fetch_decode_ingredients(spore_id).await?;
+            let render_output = self.decoder.decode_dna(&dna, metadata).await?;
             write_dob_to_cache(&render_output, &content, cache_path)?;
             (render_output, content)
         };
-        let result = ServerDecodeResult {
+        let result = serde_json::to_string(&ServerDecodeResult {
             render_output,
             dob_content,
-        };
-        Ok(serde_json::to_string(&result).unwrap())
+        })
+        .unwrap();
+        tracing::info!("spore_id {hexed_spore_id}, result: {result}");
+        Ok(result)
     }
 
     // decode DNA from a set
@@ -86,13 +89,13 @@ impl DecoderRpcServer for DecoderStandaloneServer {
     }
 }
 
-pub fn read_dob_from_cache(cache_path: PathBuf) -> Result<(String, SporeContentField), Error> {
+pub fn read_dob_from_cache(cache_path: PathBuf) -> Result<(String, Value), Error> {
     let file_content = fs::read_to_string(cache_path).map_err(|_| Error::DOBRenderCacheNotFound)?;
     let mut lines = file_content.split('\n');
     let (Some(result), Some(content)) = (lines.next(), lines.next()) else {
         return Err(Error::DOBRenderCacheModified);
     };
-    match serde_json::from_str::<SporeContentField>(content) {
+    match serde_json::from_str(content) {
         Ok(content) => Ok((result.to_string(), content)),
         Err(_) => Err(Error::DOBRenderCacheModified),
     }
@@ -100,7 +103,7 @@ pub fn read_dob_from_cache(cache_path: PathBuf) -> Result<(String, SporeContentF
 
 pub fn write_dob_to_cache(
     render_result: &str,
-    dob_content: &SporeContentField,
+    dob_content: &Value,
     cache_path: PathBuf,
 ) -> Result<(), Error> {
     let json_dob_content = serde_json::to_string(dob_content).unwrap();
