@@ -16,13 +16,11 @@ const EXAMPLE_SPORE_ID: H256 =
     h256!("0x683d0362a2e67d6edc80e3bf16136fae8a7fba21f6cb013931c5994c9ddb8d70");
 
 fn generate_unicorn_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDescriptionField) {
-    let unicorn_content = json!(
-        {
+    let unicorn_content = json!({
         "block_number": 120,
         "cell_id": 11844,
         "dna": "df4ffcb5e7a283ea7e6f09a504d0e256",
-    }
-    );
+    });
     let decoder = if onchain_decoder {
         DOBDecoderFormat {
             location: DecoderLocationType::TypeId,
@@ -46,13 +44,11 @@ fn generate_unicorn_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
 }
 
 fn generate_example_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDescriptionField) {
-    let unicorn_content = json!(
-        {
+    let unicorn_content = json!({
         "block_number": 120,
         "cell_id": 11844,
         "dna": "df4ffcb5e7a283ea7e6f09a504d0e256"
-    }
-    );
+    });
     let decoder = if onchain_decoder {
         DOBDecoderFormat {
             location: DecoderLocationType::TypeId,
