@@ -2,8 +2,7 @@ use ckb_types::h256;
 
 use crate::types::{HashType, OnchainDecoderDeployment, ScriptId, Settings};
 
-mod decoder;
-mod legacy_decoder;
+mod dob0;
 
 fn prepare_settings(version: &str) -> Settings {
     Settings {

@@ -4,7 +4,8 @@ use serde_json::{json, Value};
 use crate::decoder::DOBDecoder;
 use crate::tests::prepare_settings;
 use crate::types::{
-    ClusterDescriptionField, DOBClusterFormat, DOBDecoderFormat, DecoderLocationType,
+    ClusterDescriptionField, DOBClusterFormat, DOBClusterFormatV0, DOBDecoderFormat,
+    DecoderLocationType,
 };
 
 const EXPECTED_UNICORN_RENDER_RESULT: &str = "[{\"name\":\"wuxing_yinyang\",\"traits\":[{\"String\":\"3<_>\"}]},{\"name\":\"prev.bgcolor\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['#DBAB00', '#09D3FF', '#A028E9', '#FF3939', '#(135deg, #FE4F4F, #66C084, #00E2E2, #E180E2, #F4EC32)']\"}]},{\"name\":\"prev<%v>\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['#000000', '#000000', '#000000', '#000000', '#000000', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF'])\"}]},{\"name\":\"Spirits\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Metal, Golden Body', 'Wood, Blue Body', 'Water, White Body', 'Fire, Red Body', 'Earth, Colorful Body']\"}]},{\"name\":\"Yin Yang\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair']\"}]},{\"name\":\"Talents\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Guard<~>', 'Death<~>', 'Forget<~>', 'Curse<~>', 'Hermit<~>', 'Attack<~>', 'Revival<~>', 'Summon<~>', 'Prophet<~>', 'Crown<~>']\"}]},{\"name\":\"Horn\",\"traits\":[{\"String\":\"(%wuxing_yinyang):['Praetorian Horn', 'Hel Horn', 'Lethe Horn', 'Necromancer Horn', 'Lao Tsu Horn', 'Warrior Horn', 'Shaman Horn', 'Bard Horn', 'Sibyl Horn', 'Caesar Horn']\"}]},{\"name\":\"Wings\",\"traits\":[{\"String\":\"Sun Wings\"}]},{\"name\":\"Tail\",\"traits\":[{\"String\":\"Meteor Tail\"}]},{\"name\":\"Horseshoes\",\"traits\":[{\"String\":\"Silver Horseshoes\"}]},{\"name\":\"Destiny Number\",\"traits\":[{\"Number\":65321}]},{\"name\":\"Lucky Number\",\"traits\":[{\"Number\":35}]}]";
@@ -34,11 +35,10 @@ fn generate_unicorn_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
     };
     let unicorn_metadata = ClusterDescriptionField {
             description: "Unicorns are the first series of digital objects generated based on time and space on CKB. Combining the Birth Time-location Determining Destiny Theory, Five Element Theory and YinYang Theory, it provide a special way for people to get Unicorn's on-chain DNA. Now all the seeds(DNAs) are on chain, and a magic world can expand.".to_string(),
-            dob: DOBClusterFormat {
-                ver: Some(0),
+            dob: DOBClusterFormat::new_dob0(DOBClusterFormatV0 {
                 decoder,
                 pattern: serde_json::from_str("[[\"wuxing_yinyang\",\"string\",0,1,\"options\",[\"0<_>\",\"1<_>\",\"2<_>\",\"3<_>\",\"4<_>\",\"5<_>\",\"6<_>\",\"7<_>\",\"8<_>\",\"9<_>\"]],[\"prev.bgcolor\",\"string\",1,1,\"options\",[\"(%wuxing_yinyang):['#DBAB00', '#09D3FF', '#A028E9', '#FF3939', '#(135deg, #FE4F4F, #66C084, #00E2E2, #E180E2, #F4EC32)']\"]],[\"prev<%v>\",\"string\",2,1,\"options\",[\"(%wuxing_yinyang):['#000000', '#000000', '#000000', '#000000', '#000000', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF'])\"]],[\"Spirits\",\"string\",3,1,\"options\",[\"(%wuxing_yinyang):['Metal, Golden Body', 'Wood, Blue Body', 'Water, White Body', 'Fire, Red Body', 'Earth, Colorful Body']\"]],[\"Yin Yang\",\"string\",4,1,\"options\",[\"(%wuxing_yinyang):['Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yin, Long hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair', 'Yang, Short Hair']\"]],[\"Talents\",\"string\",5,1,\"options\",[\"(%wuxing_yinyang):['Guard<~>', 'Death<~>', 'Forget<~>', 'Curse<~>', 'Hermit<~>', 'Attack<~>', 'Revival<~>', 'Summon<~>', 'Prophet<~>', 'Crown<~>']\"]],[\"Horn\",\"string\",6,1,\"options\",[\"(%wuxing_yinyang):['Praetorian Horn', 'Hel Horn', 'Lethe Horn', 'Necromancer Horn', 'Lao Tsu Horn', 'Warrior Horn', 'Shaman Horn', 'Bard Horn', 'Sibyl Horn', 'Caesar Horn']\"]],[\"Wings\",\"string\",7,1,\"options\",[\"Wind Wings\",\"Night Shadow Wings\",\"Lightning Wings\",\"Sun Wings\",\"Golden Wings\",\"Cloud Wings\",\"Morning Glow Wings\",\"Star Wings\",\"Spring Wings\",\"Moon Wings\",\"Angel Wings\"]],[\"Tail\",\"string\",8,1,\"options\",[\"Meteor Tail\",\"Rainbow Tail\",\"Willow Tail\",\"Phoenix Tail\",\"Sunset Shadow Tail\",\"Socrates Tail\",\"Dumbledore Tail\",\"Venus Tail\",\"Gaia Tail\"]],[\"Horseshoes\",\"string\",9,1,\"options\",[\"Ice Horseshoes\",\"Crystal Horseshoes\",\"Maple Horseshoes\",\"Flame Horseshoes\",\"Thunder Horseshoes\",\"Lotus Horseshoes\",\"Silver Horseshoes\"]],[\"Destiny Number\",\"number\",10,4,\"range\",[50000,100000]],[\"Lucky Number\",\"number\",14,1,\"range\",[1,49]]]").unwrap(),
-            },
+            }),
         };
     (unicorn_content, unicorn_metadata)
 }
@@ -62,11 +62,10 @@ fn generate_example_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
     };
     let unicorn_metadata = ClusterDescriptionField {
             description: "DOB/0 example.".to_string(),
-            dob: DOBClusterFormat {
-                ver: Some(0),
+            dob: DOBClusterFormat::new_dob0(DOBClusterFormatV0 {
                 decoder,
                 pattern: serde_json::from_str("[[\"Name\",\"string\",0,1,\"options\",[\"Alice\",\"Bob\",\"Charlie\",\"David\",\"Ethan\",\"Florence\",\"Grace\",\"Helen\"]],[\"Age\",\"number\",1,1,\"range\",[0,100]],[\"Score\",\"number\",2,1,\"raw\"],[\"DNA\",\"string\",3,3,\"raw\"],[\"URL\",\"string\",6,21,\"utf8\"],[\"Value\",\"number\",3,3,\"raw\"]]").unwrap(),
-            },
+            }),
         };
     (unicorn_content, unicorn_metadata)
 }

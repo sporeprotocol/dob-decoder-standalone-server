@@ -6,6 +6,9 @@ protocol_versions = [
 # connect to the RPC of CKB node
 ckb_rpc = "https://mainnet.ckb.dev/"
 
+# connect to the image fetcher service
+image_fetcher_url = "https://dobfs.dobby.market"
+
 # address that rpc server running at in case of standalone server mode
 rpc_server_address = "0.0.0.0:8090"
 
@@ -20,6 +23,12 @@ dobs_cache_directory = "cache/dobs"
 
 # expiration time indicator for cleaning whole dobs cache, zero means never clean
 dobs_cache_expiration_sec = 300
+
+# identifier that represents the maximum combination of DOB/1
+dob1_max_combination = 5
+
+# identifier that represents the maximum number of caching images
+dob1_max_cache_size = 100
 
 # all deployed on-chain Spore contracts binary hash (order from new to old)
 # refer to: https://github.com/sporeprotocol/spore-contract/blob/master/docs/VERSIONS.md

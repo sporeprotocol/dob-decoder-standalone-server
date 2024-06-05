@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -5,6 +6,7 @@ use std::sync::Arc;
 
 use ckb_jsonrpc_types::{CellWithStatus, JsonBytes, OutPoint, Uint32};
 use ckb_sdk::rpc::ckb_indexer::{Cell, Order, Pagination, SearchKey};
+use ckb_vm::Bytes;
 use jsonrpc_core::futures::FutureExt;
 use reqwest::{Client, Url};
 
@@ -77,9 +79,7 @@ impl RpcClient {
             id: Arc::new(AtomicU64::new(0)),
         }
     }
-}
 
-impl RpcClient {
     pub fn get_live_cell(&self, out_point: &OutPoint, with_data: bool) -> Rpc<CellWithStatus> {
         jsonrpc!(
             "get_live_cell",
@@ -112,5 +112,62 @@ impl RpcClient {
             cursor,
         )
         .boxed()
+    }
+}
+
+pub struct ImageFetchClient {
+    raw: Client,
+    base_url: Url,
+    images_cache: VecDeque<(Url, Bytes)>,
+    max_cache_size: usize,
+}
+
+impl ImageFetchClient {
+    pub fn new(base_url: &str, cache_size: usize) -> Self {
+        let base_url = Url::parse(base_url).expect("base url, e.g. \"http://127.0.0.1");
+        Self {
+            raw: Client::new(),
+            base_url,
+            images_cache: VecDeque::new(),
+            max_cache_size: cache_size,
+        }
+    }
+
+    pub async fn fetch_images(&mut self, images_uri: &[String]) -> Result<Vec<Vec<u8>>, Error> {
+        let requests = images_uri
+            .iter()
+            .map(|uri| self.base_url.join(uri).expect("valid url"))
+            .map(|url| {
+                let image = self.images_cache.iter().find(|v| v.0 == url);
+                if let Some((_, image)) = image {
+                    async move { Ok((url, true, image.clone())) }.boxed()
+                } else {
+                    let send = self.raw.get(url.clone()).send();
+                    async move {
+                        let bytes = send
+                            .await
+                            .map_err(|_| Error::JsonRpcRequestError)?
+                            .bytes()
+                            .await
+                            .map_err(|_| Error::JsonRpcRequestError)?;
+                        Ok((url, false, bytes))
+                    }
+                    .boxed()
+                }
+            })
+            .collect::<Vec<_>>();
+        let mut images = vec![];
+        let responses = futures::future::join_all(requests).await;
+        for response in responses {
+            let (url, from_cache, result) = response?;
+            images.push(result.to_vec());
+            if !from_cache {
+                self.images_cache.push_back((url, result));
+                if self.images_cache.len() > self.max_cache_size {
+                    self.images_cache.pop_front();
+                }
+            }
+        }
+        Ok(images)
     }
 }
