@@ -44,7 +44,7 @@ fn generate_unicorn_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
 }
 
 fn generate_example_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDescriptionField) {
-    let unicorn_content = json!({
+    let example_content = json!({
         "block_number": 120,
         "cell_id": 11844,
         "dna": "df4ffcb5e7a283ea7e6f09a504d0e256"
@@ -60,14 +60,14 @@ fn generate_example_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
             hash: h256!("0x32f29aba4b17f3d05bec8cec55d50ef86766fd0bf82fdedaa14269f344d3784a"),
         }
     };
-    let unicorn_metadata = ClusterDescriptionField {
+    let example_metadata = ClusterDescriptionField {
             description: "DOB/0 example.".to_string(),
             dob: DOBClusterFormat::new_dob0(DOBClusterFormatV0 {
                 decoder,
                 pattern: serde_json::from_str("[[\"Name\",\"string\",0,1,\"options\",[\"Alice\",\"Bob\",\"Charlie\",\"David\",\"Ethan\",\"Florence\",\"Grace\",\"Helen\"]],[\"Age\",\"number\",1,1,\"range\",[0,100]],[\"Score\",\"number\",2,1,\"raw\"],[\"DNA\",\"string\",3,3,\"raw\"],[\"URL\",\"string\",6,21,\"utf8\"],[\"Value\",\"number\",3,3,\"raw\"]]").unwrap(),
             }),
         };
-    (unicorn_content, unicorn_metadata)
+    (example_content, example_metadata)
 }
 
 #[tokio::test]

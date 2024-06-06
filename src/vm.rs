@@ -1,6 +1,7 @@
 // refer to https://github.com/nervosnetwork/ckb-vm/blob/develop/examples/ckb-vm-runner.rs
 
-use std::sync::{Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
 
 use ckb_vm::cost_model::estimate_cycles;
 use ckb_vm::registers::{A0, A1, A2, A3, A4, A7};
@@ -9,6 +10,14 @@ use image::load_from_memory;
 
 use crate::client::ImageFetchClient;
 use crate::types::Settings;
+
+macro_rules! error {
+    ($err: expr) => {{
+        let error = $err.to_string();
+        println!("[DOB/1 ERROR] {error}");
+        ckb_vm::error::Error::Unexpected(error)
+    }};
+}
 
 // ckb-vm syscall for printing debug information
 struct DebugSyscall {
@@ -53,7 +62,7 @@ impl<Mac: SupportMachine> Syscalls<Mac> for DebugSyscall {
 
 // ckb-vm syscall for image combination
 struct ImageCombinationSyscall {
-    client: ImageFetchClient,
+    client: Arc<Mutex<ImageFetchClient>>,
     max_combination: usize,
 }
 
@@ -90,23 +99,31 @@ impl<Mac: SupportMachine> Syscalls<Mac> for ImageCombinationSyscall {
         {
             println!("-------- DOB/1 IMAGES ---------");
             images_uri_array.iter().for_each(|uri| println!("{uri}"));
-            println!("-------- DOB/1 IMAGES END ---------");
+            println!("-------- DOB/1 IMAGES END ---------\n");
         }
 
         // fetch images from uri
-        let mut images = futures::executor::block_on(self.client.fetch_images(&images_uri_array))
-            .map_err(|_| ckb_vm::error::Error::Unexpected("failed to fetch images".to_owned()))?
+        let client = self.client.clone();
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            let mut client = client.lock().unwrap();
+            tx.send(rt.block_on(client.fetch_images(&images_uri_array)))
+                .expect("send");
+        });
+        let mut images = rx
+            .recv()
+            .expect("recv")
+            .map_err(|err| error!(err))?
             .into_iter()
             .map(|image| load_from_memory(&image))
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|_| ckb_vm::error::Error::Unexpected("failed to parse images".to_owned()))?;
+            .map_err(|err| error!(err))?;
         if images.is_empty() {
-            return Err(ckb_vm::error::Error::Unexpected("empty images".to_owned()));
+            return Err(error!("empty images"));
         }
         if images.len() > self.max_combination {
-            return Err(ckb_vm::error::Error::Unexpected(
-                "exceesive images".to_owned(),
-            ));
+            return Err(error!("exceesive images"));
         }
 
         // resize images to the maximum
@@ -154,8 +171,9 @@ fn main_asm(
     let debug = Box::new(DebugSyscall {
         output: debug_result.clone(),
     });
+    let client = ImageFetchClient::new(&settings.image_fetcher_url, settings.dob1_max_cache_size);
     let image = Box::new(ImageCombinationSyscall {
-        client: ImageFetchClient::new(&settings.image_fetcher_url, settings.dob1_max_cache_size),
+        client: Arc::new(Mutex::new(client)),
         max_combination: settings.dob1_max_combination,
     });
 

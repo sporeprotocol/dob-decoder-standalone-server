@@ -8,7 +8,7 @@ mod dob1;
 fn prepare_settings(version: &str) -> Settings {
     Settings {
         ckb_rpc: "https://testnet.ckbapp.dev/".to_string(),
-        image_fetcher_url: "https://dobfs.dobby.market/testnet".to_string(),
+        image_fetcher_url: "https://mempool.space/api/tx/".to_string(),
         protocol_versions: vec![version.to_string()],
         ckb_vm_runner: "ckb-vm-runner".to_string(),
         decoders_cache_directory: "cache/decoders".parse().unwrap(),

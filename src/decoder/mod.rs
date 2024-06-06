@@ -71,7 +71,7 @@ impl DOBDecoder {
             {
                 println!("-------- DOB/0 DECODE RESULT ({exit_code}) ---------");
                 outputs.iter().for_each(|output| println!("{output}"));
-                println!("-------- DOB/0 DECODE RESULT END ---------");
+                println!("-------- DOB/0 DECODE RESULT END ---------\n");
             }
             if exit_code != 0 {
                 return Err(Error::DecoderExecutionInternalError);
@@ -101,7 +101,7 @@ impl DOBDecoder {
             {
                 println!("-------- DOB/1 DECODE RESULT ({exit_code}) ---------");
                 outputs.iter().for_each(|output| println!("{output}"));
-                println!("-------- DOB/1 DECODE RESULT END ---------");
+                println!("-------- DOB/1 DECODE RESULT END ---------\n");
             }
             if exit_code != 0 {
                 return Err(Error::DecoderExecutionInternalError);

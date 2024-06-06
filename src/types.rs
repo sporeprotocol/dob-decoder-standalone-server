@@ -69,6 +69,18 @@ pub enum Error {
     JsonRpcRequestError,
     #[error("error ocurred while requiring system timestamp")]
     SystemTimeError,
+    #[error("BTC node responsed bad")]
+    FetchFromBtcNodeError,
+    #[error("BTC transaction format broken")]
+    InvalidBtcTransactionFormat,
+    #[error("Inscription format broken")]
+    InvalidInscriptionFormat,
+    #[error("Inscription content must be hex format")]
+    InvalidInscriptionContentHexFormat,
+    #[error("Inscription content must be filled")]
+    EmptyInscriptionContent,
+    #[error("fs header like 'btcfs://' and 'ckbfs://' are not contained")]
+    InvalidOnchainFsuriFormat,
 }
 
 pub enum Dob<'a> {
