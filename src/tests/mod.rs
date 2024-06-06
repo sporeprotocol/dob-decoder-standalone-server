@@ -3,14 +3,18 @@ use ckb_types::h256;
 use crate::types::{HashType, OnchainDecoderDeployment, ScriptId, Settings};
 
 mod dob0;
+mod dob1;
 
 fn prepare_settings(version: &str) -> Settings {
     Settings {
         ckb_rpc: "https://testnet.ckbapp.dev/".to_string(),
+        image_fetcher_url: "https://dobfs.dobby.market/testnet".to_string(),
         protocol_versions: vec![version.to_string()],
         ckb_vm_runner: "ckb-vm-runner".to_string(),
         decoders_cache_directory: "cache/decoders".parse().unwrap(),
         dobs_cache_directory: "cache/dobs".parse().unwrap(),
+        dob1_max_combination: 5,
+        dob1_max_cache_size: 100,
         available_spores: vec![
             ScriptId {
                 code_hash: h256!(
