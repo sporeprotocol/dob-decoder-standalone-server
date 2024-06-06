@@ -46,6 +46,11 @@ tx_hash = "0xb2497dc3e616055125ef8276be7ee21986d2cd4b2ce90992725386cabcb6ea7f"
 out_index = 0
 
 [[onchain_decoder_deployment]]
+code_hash = "0x32f29aba4b17f3d05bec8cec55d50ef86766fd0bf82fdedaa14269f344d3784a"
+tx_hash = "0x8725f0c9a1c634acfd783749c6bdd394c9085aaf4bd2b1ed88f5eb7ed11dfe95"
+out_index = 0
+
+[[onchain_decoder_deployment]]
 code_hash = "0x1c84212ebd817e9de09d2a79f85cc421b684eda63409cfa75688f98716e77b5f"
 tx_hash = "0xc877aca405da6a3038054cb5da20f2db0ed46bb643007d4e0b1d3fe7da155bf0"
 out_index = 0
