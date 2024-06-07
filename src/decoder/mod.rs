@@ -69,9 +69,9 @@ impl DOBDecoder {
             .map_err(|_| Error::DecoderExecutionError)?;
             #[cfg(feature = "render_debug")]
             {
-                println!("-------- DOB/0 DECODE RESULT ({exit_code}) ---------");
+                println!("\n-------- DOB/0 DECODE RESULT ({exit_code}) ---------");
                 outputs.iter().for_each(|output| println!("{output}"));
-                println!("-------- DOB/0 DECODE RESULT END ---------\n");
+                println!("-------- DOB/0 DECODE RESULT END ---------");
             }
             if exit_code != 0 {
                 return Err(Error::DecoderExecutionInternalError);
@@ -99,9 +99,9 @@ impl DOBDecoder {
             .map_err(|_| Error::DecoderExecutionError)?;
             #[cfg(feature = "render_debug")]
             {
-                println!("-------- DOB/1 DECODE RESULT ({exit_code}) ---------");
+                println!("\n-------- DOB/1 DECODE RESULT ({exit_code}) ---------");
                 outputs.iter().for_each(|output| println!("{output}"));
-                println!("-------- DOB/1 DECODE RESULT END ---------\n");
+                println!("-------- DOB/1 DECODE RESULT END ---------");
             }
             if exit_code != 0 {
                 return Err(Error::DecoderExecutionInternalError);

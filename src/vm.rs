@@ -1,20 +1,24 @@
 // refer to https://github.com/nervosnetwork/ckb-vm/blob/develop/examples/ckb-vm-runner.rs
 
+use std::io::Cursor;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
 use ckb_vm::cost_model::estimate_cycles;
-use ckb_vm::registers::{A0, A1, A2, A3, A4, A7};
+use ckb_vm::registers::{A0, A1, A2, A3, A7};
 use ckb_vm::{Bytes, Memory, Register, SupportMachine, Syscalls};
-use image::load_from_memory;
+use image::codecs::png::{CompressionType, FilterType, PngEncoder};
+use image::{imageops, load_from_memory, DynamicImage, Pixel, Rgb, RgbaImage};
+use jsonrpsee::tracing;
+use molecule::prelude::Entity;
 
 use crate::client::ImageFetchClient;
-use crate::types::Settings;
+use crate::types::{generated, Error, Settings};
 
 macro_rules! error {
     ($err: expr) => {{
         let error = $err.to_string();
-        println!("[DOB/1 ERROR] {error}");
+        tracing::error!("{error}");
         ckb_vm::error::Error::Unexpected(error)
     }};
 }
@@ -54,7 +58,7 @@ impl<Mac: SupportMachine> Syscalls<Mac> for DebugSyscall {
             .clone()
             .lock()
             .unwrap()
-            .push(String::from_utf8(buffer).unwrap());
+            .push(String::from_utf8(buffer).map_err(|err| error!(err))?);
 
         Ok(true)
     }
@@ -64,6 +68,24 @@ impl<Mac: SupportMachine> Syscalls<Mac> for DebugSyscall {
 struct ImageCombinationSyscall {
     client: Arc<Mutex<ImageFetchClient>>,
     max_combination: usize,
+}
+
+impl ImageCombinationSyscall {
+    // fetch one image synchronously
+    //
+    // note: for saving space purpose, we take time to trade memory space through
+    //       fetching images one by one
+    fn fetch_one_image_sync(&mut self, image_uri: String) -> Result<Vec<u8>, Error> {
+        let (tx, rx) = mpsc::channel();
+        let client = self.client.clone();
+        thread::spawn(move || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            let mut client = client.lock().unwrap();
+            tx.send(rt.block_on(client.fetch_images(&[image_uri])))
+                .expect("send");
+        });
+        Ok(rx.recv().expect("recv")?.remove(0))
+    }
 }
 
 impl<Mac: SupportMachine> Syscalls<Mac> for ImageCombinationSyscall {
@@ -80,86 +102,102 @@ impl<Mac: SupportMachine> Syscalls<Mac> for ImageCombinationSyscall {
         // prepare input arguments
         let buffer_addr = machine.registers()[A0].to_u64();
         let buffer_size_addr = machine.registers()[A1].clone();
-        let buffer_size = machine.memory_mut().load64(&buffer_size_addr)?.to_u64();
-        let images_uri_array_addr = machine.registers()[A2].to_u64();
-        let images_uri_array_count = machine.registers()[A3].to_u64();
-        let iamges_uri_array_uint_size = machine.registers()[A4].to_u64();
+        let mut buffer_size = machine.memory_mut().load64(&buffer_size_addr)?.to_u64();
+        let molecule_addr = machine.registers()[A2].to_u64();
+        let molecule_size = machine.registers()[A3].to_u64();
 
-        // parse all of images uri
-        let array_size = images_uri_array_count * iamges_uri_array_uint_size;
-        let images_uri_array_bytes = machine
+        // parse all of images uri/color/raw
+        let pattern_bytes = machine
             .memory_mut()
-            .load_bytes(images_uri_array_addr, array_size)?;
-        let images_uri_array = images_uri_array_bytes
-            .chunks_exact(iamges_uri_array_uint_size as usize)
-            .map(|uri_bytes| String::from_utf8_lossy(uri_bytes).to_string())
-            .collect::<Vec<_>>();
+            .load_bytes(molecule_addr, molecule_size)?;
+        let pattern =
+            generated::ItemVec::from_compatible_slice(&pattern_bytes).map_err(|err| error!(err))?;
+        if pattern.len() > self.max_combination {
+            return Err(error!("too many combine operations"));
+        }
 
+        // handle DOB/1 pattern
         #[cfg(feature = "render_debug")]
         {
-            println!("-------- DOB/1 IMAGES ---------");
-            images_uri_array.iter().for_each(|uri| println!("{uri}"));
-            println!("-------- DOB/1 IMAGES END ---------\n");
+            println!("\n-------- DOB/1 IMAGES ---------");
         }
-
-        // fetch images from uri
-        let client = self.client.clone();
-        let (tx, rx) = mpsc::channel();
-        thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            let mut client = client.lock().unwrap();
-            tx.send(rt.block_on(client.fetch_images(&images_uri_array)))
-                .expect("send");
-        });
-        let mut images = rx
-            .recv()
-            .expect("recv")
-            .map_err(|err| error!(err))?
-            .into_iter()
-            .map(|image| load_from_memory(&image))
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|err| error!(err))?;
-        if images.is_empty() {
-            return Err(error!("empty images"));
+        let mut combination = image::DynamicImage::new_rgba8(1, 1);
+        for item in pattern.into_iter() {
+            match item.to_enum() {
+                generated::ItemUnion::Color(color) => {
+                    let color_code = String::from_utf8_lossy(&color.raw_data()).to_string();
+                    #[cfg(feature = "render_debug")]
+                    {
+                        println!("COLOR => #{color_code}");
+                    }
+                    let rgb = hex::decode(color_code).map_err(|err| error!(err))?;
+                    if rgb.len() != 3 {
+                        return Err(error!("invalid color code"));
+                    }
+                    let pixel = Rgb([rgb[0], rgb[1], rgb[2]]).to_rgba();
+                    let image = DynamicImage::ImageRgba8(RgbaImage::from_pixel(1, 1, pixel));
+                    overlay_both_images(&mut combination, image);
+                }
+                generated::ItemUnion::RawImage(raw_image) => {
+                    #[cfg(feature = "render_debug")]
+                    {
+                        println!("IMAGE => (bytes length: {})", raw_image.raw_data().len());
+                    }
+                    let image =
+                        load_from_memory(&raw_image.raw_data()).map_err(|err| error!(err))?;
+                    overlay_both_images(&mut combination, image);
+                }
+                generated::ItemUnion::URI(uri) => {
+                    let uri = String::from_utf8_lossy(&uri.raw_data()).to_string();
+                    #[cfg(feature = "render_debug")]
+                    {
+                        println!("FSURI => {uri}");
+                    }
+                    let raw_image = self.fetch_one_image_sync(uri).map_err(|err| error!(err))?;
+                    let image = load_from_memory(&raw_image).map_err(|err| error!(err))?;
+                    overlay_both_images(&mut combination, image);
+                }
+            }
         }
-        if images.len() > self.max_combination {
-            return Err(error!("exceesive images"));
+        #[cfg(feature = "render_debug")]
+        {
+            println!("-------- DOB/1 IMAGES END ---------");
         }
-
-        // resize images to the maximum
-        let mut max_width = 0;
-        let mut max_height = 0;
-        images.iter().for_each(|image| {
-            max_width = max_width.max(image.width());
-            max_height = max_height.max(image.height());
-        });
-        images.iter_mut().for_each(|image| {
-            image.resize(max_width, max_height, image::imageops::FilterType::Nearest);
-        });
-
-        // combine images into a single one
-        let mut combination = images.remove(0);
-        if buffer_size == 0 {
-            machine.memory_mut().store64(
-                &buffer_size_addr,
-                &Mac::REG::from_u64(combination.as_bytes().len() as u64),
-            )?;
-            return Ok(true);
-        }
-        images.into_iter().for_each(|image| {
-            image::imageops::overlay(&mut combination, &image, 0, 0);
-        });
 
         // return output
-        let output = combination.as_bytes();
-        let buffer_size = buffer_size.min(output.len() as u64);
-        machine.memory_mut().store_bytes(buffer_addr, output)?;
+        let mut output = Vec::new();
+        let cursor = Cursor::new(&mut output);
+        let png = PngEncoder::new_with_quality(cursor, CompressionType::Best, FilterType::NoFilter);
+        combination
+            .write_with_encoder(png)
+            .map_err(|err| error!(err))?;
+        if buffer_size > 0 {
+            buffer_size = buffer_size.min(output.len() as u64);
+            machine
+                .memory_mut()
+                .store_bytes(buffer_addr, &output[..buffer_size as usize])?;
+        } else {
+            buffer_size = output.len() as u64;
+        }
+        std::fs::write("nervape.png", &output).unwrap();
         machine
             .memory_mut()
             .store64(&buffer_size_addr, &Mac::REG::from_u64(buffer_size))?;
 
         Ok(true)
     }
+}
+
+fn overlay_both_images(base: &mut DynamicImage, mut overlayer: DynamicImage) {
+    let width = base.width().max(overlayer.width());
+    let height = base.height().max(overlayer.height());
+    if base.width() != width || base.height() != height {
+        *base = base.resize(width, height, imageops::FilterType::Nearest);
+    }
+    if overlayer.width() != width || overlayer.height() != height {
+        overlayer = overlayer.resize(width, height, imageops::FilterType::Nearest);
+    }
+    imageops::overlay(base, &overlayer, 0, 0);
 }
 
 fn main_asm(

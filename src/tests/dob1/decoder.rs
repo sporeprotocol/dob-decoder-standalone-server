@@ -1,4 +1,7 @@
+use std::io::Cursor;
+
 use ckb_types::h256;
+use image::codecs::png::{CompressionType, FilterType, PngEncoder};
 
 use crate::client::ImageFetchClient;
 use crate::decoder::DOBDecoder;
@@ -47,7 +50,12 @@ async fn check_fetched_image() {
     ];
     let images = fetcher.fetch_images(&uris).await.expect("fetch images");
     let image_raw_bytes = images.first().expect("image");
-    image::load_from_memory(&image_raw_bytes).expect("load image");
+    let rgba = image::load_from_memory(&image_raw_bytes).expect("load image");
+    let mut inner_buffer = Vec::new();
+    let buffer = Cursor::new(&mut inner_buffer);
+    let encoder = PngEncoder::new_with_quality(buffer, CompressionType::Best, FilterType::NoFilter);
+    rgba.write_with_encoder(encoder).expect("write image");
+    println!("image size: {:?}", inner_buffer.len());
 }
 
 #[tokio::test]

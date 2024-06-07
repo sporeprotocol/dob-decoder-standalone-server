@@ -442,7 +442,7 @@ dependencies = [
  "ckb-fixed-hash",
  "ckb-hash",
  "ckb-occupied-capacity",
- "molecule",
+ "molecule 0.7.5",
  "numext-fixed-uint",
 ]
 
@@ -670,7 +670,7 @@ dependencies = [
  "derive_more",
  "golomb-coded-set",
  "merkle-cbt",
- "molecule",
+ "molecule 0.7.5",
  "numext-fixed-uint",
  "once_cell",
  "paste",
@@ -899,6 +899,7 @@ dependencies = [
  "image",
  "jsonrpc-core",
  "jsonrpsee",
+ "molecule 0.8.0",
  "reqwest 0.12.4",
  "serde",
  "serde_json",
@@ -1894,6 +1895,17 @@ name = "molecule"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4fd9767ab5e5f2ea40f71ff4c8bdb633c50509052e093c2fdd0e390a749dfa3"
+dependencies = [
+ "bytes",
+ "cfg-if 1.0.0",
+ "faster-hex",
+]
+
+[[package]]
+name = "molecule"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6efe1c7efcd0bdf4ca590e104bcb13087d9968956ae4ae98e92fb8c1da0f3730"
 dependencies = [
  "bytes",
  "cfg-if 1.0.0",
@@ -3040,7 +3052,7 @@ name = "spore-types"
 version = "0.1.0"
 source = "git+https://github.com/sporeprotocol/spore-contract?rev=81315ca#81315ca8c3865719a5ab71eb2dcc4bf4332cb09c"
 dependencies = [
- "molecule",
+ "molecule 0.7.5",
 ]
 
 [[package]]

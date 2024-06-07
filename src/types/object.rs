@@ -9,6 +9,7 @@ use jsonrpsee::types::ErrorCode;
 #[cfg(feature = "standalone_server")]
 use serde::Serialize;
 
+<<<<<<< HEAD:src/types.rs
 #[allow(clippy::enum_variant_names)]
 #[derive(thiserror::Error, Debug)]
 #[repr(i32)]
@@ -82,6 +83,9 @@ pub enum Error {
     #[error("fs header like 'btcfs://' and 'ckbfs://' are not contained")]
     InvalidOnchainFsuriFormat,
 }
+=======
+use crate::types::Error;
+>>>>>>> 6e23044 (feat: use molecule as parameter for syscall):src/types/object.rs
 
 pub enum Dob<'a> {
     V0(&'a DOBClusterFormatV0),
