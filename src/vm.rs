@@ -179,7 +179,6 @@ impl<Mac: SupportMachine> Syscalls<Mac> for ImageCombinationSyscall {
         } else {
             buffer_size = output.len() as u64;
         }
-        std::fs::write("nervape.png", &output).unwrap();
         machine
             .memory_mut()
             .store64(&buffer_size_addr, &Mac::REG::from_u64(buffer_size))?;
