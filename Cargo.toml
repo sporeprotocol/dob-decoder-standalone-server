@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+base64 = "0.22.1"
 ckb-sdk = "3.2.0"
 ckb-types = "0.116.1"
 ckb-jsonrpc-types = "0.116.1"

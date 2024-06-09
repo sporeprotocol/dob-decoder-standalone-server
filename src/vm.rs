@@ -4,6 +4,7 @@ use std::io::Cursor;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
+use base64::{engine::general_purpose::STANDARD, Engine};
 use ckb_vm::cost_model::estimate_cycles;
 use ckb_vm::registers::{A0, A1, A2, A3, A7};
 use ckb_vm::{Bytes, Memory, Register, SupportMachine, Syscalls};
@@ -128,9 +129,10 @@ impl<Mac: SupportMachine> Syscalls<Mac> for ImageCombinationSyscall {
                     let color_code = String::from_utf8_lossy(&color.raw_data()).to_string();
                     #[cfg(feature = "render_debug")]
                     {
-                        println!("COLOR => #{color_code}");
+                        println!("COLOR => {color_code}");
                     }
-                    let rgb = hex::decode(color_code).map_err(|err| error!(err))?;
+                    let rgb = hex::decode(color_code.trim_start_matches('#'))
+                        .map_err(|err| error!(err))?;
                     if rgb.len() != 3 {
                         return Err(error!("invalid color code"));
                     }
@@ -141,10 +143,12 @@ impl<Mac: SupportMachine> Syscalls<Mac> for ImageCombinationSyscall {
                 generated::ItemUnion::RawImage(raw_image) => {
                     #[cfg(feature = "render_debug")]
                     {
-                        println!("IMAGE => (bytes length: {})", raw_image.raw_data().len());
+                        println!("IMAGE => (base64 len: {})", raw_image.raw_data().len());
                     }
-                    let image =
-                        load_from_memory(&raw_image.raw_data()).map_err(|err| error!(err))?;
+                    let image_bytes = STANDARD
+                        .decode(raw_image.raw_data())
+                        .map_err(|err| error!(err))?;
+                    let image = load_from_memory(&image_bytes).map_err(|err| error!(err))?;
                     overlay_both_images(&mut combination, image);
                 }
                 generated::ItemUnion::URI(uri) => {
@@ -172,10 +176,14 @@ impl<Mac: SupportMachine> Syscalls<Mac> for ImageCombinationSyscall {
             .write_with_encoder(png)
             .map_err(|err| error!(err))?;
         if buffer_size > 0 {
-            buffer_size = buffer_size.min(output.len() as u64);
+            let mut base64_output = vec![];
+            STANDARD
+                .encode_slice(output, &mut base64_output)
+                .map_err(|err| error!(err))?;
+            buffer_size = buffer_size.min(base64_output.len() as u64);
             machine
                 .memory_mut()
-                .store_bytes(buffer_addr, &output[..buffer_size as usize])?;
+                .store_bytes(buffer_addr, &base64_output[..buffer_size as usize])?;
         } else {
             buffer_size = output.len() as u64;
         }
