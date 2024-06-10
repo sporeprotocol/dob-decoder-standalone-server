@@ -9,6 +9,7 @@ use std::sync::Arc;
 use ckb_jsonrpc_types::{CellWithStatus, JsonBytes, OutPoint, Uint32};
 use ckb_sdk::rpc::ckb_indexer::{Cell, Order, Pagination, SearchKey};
 use jsonrpc_core::futures::FutureExt;
+use lazy_regex::regex_replace_all;
 use reqwest::{Client, Url};
 use serde_json::Value;
 
@@ -195,7 +196,7 @@ async fn parse_image_from_btcfs(url: &Url, index: usize) -> Result<Vec<u8>, Erro
         .ok_or(Error::InvalidBtcTransactionFormat)?
         .as_array()
         .ok_or(Error::InvalidBtcTransactionFormat)?
-        .get(index)
+        .get(0)
         .ok_or(Error::InvalidBtcTransactionFormat)?;
     let mut witness = vin
         .get("inner_witnessscript_asm")
@@ -212,12 +213,10 @@ async fn parse_image_from_btcfs(url: &Url, index: usize) -> Result<Vec<u8>, Erro
         if !inscription.contains(header) {
             return Err(Error::InvalidInscriptionFormat);
         }
-        let hexed_image = inscription
-            .replace(header, "")
-            .replace(" OP_ENDIF", "")
-            .replace(" OP_PUSHDATA2 ", "");
+        let base_removed = inscription.replace(header, "");
+        let hexed = regex_replace_all!(r#"\s?OP\_\w+\s?"#, &base_removed, "");
         let image =
-            hex::decode(hexed_image).map_err(|_| Error::InvalidInscriptionContentHexFormat)?;
+            hex::decode(hexed.as_bytes()).map_err(|_| Error::InvalidInscriptionContentHexFormat)?;
         images.push(image);
         witness = witness[end + "OP_ENDIF".len()..].to_owned();
     }
@@ -225,5 +224,9 @@ async fn parse_image_from_btcfs(url: &Url, index: usize) -> Result<Vec<u8>, Erro
         return Err(Error::EmptyInscriptionContent);
     }
 
-    Ok(images.remove(0))
+    let image = images
+        .get(index)
+        .cloned()
+        .ok_or(Error::ExceededInscriptionIndex)?;
+    Ok(image)
 }

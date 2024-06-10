@@ -10,7 +10,6 @@ use ckb_vm::registers::{A0, A1, A2, A3, A7};
 use ckb_vm::{Bytes, Memory, Register, SupportMachine, Syscalls};
 use image::codecs::png::{CompressionType, FilterType, PngEncoder};
 use image::{imageops, load_from_memory, DynamicImage, Pixel, Rgb, RgbaImage};
-use jsonrpsee::tracing;
 use molecule::prelude::Entity;
 
 use crate::client::ImageFetchClient;
@@ -19,7 +18,10 @@ use crate::types::{generated, Error, Settings};
 macro_rules! error {
     ($err: expr) => {{
         let error = $err.to_string();
-        tracing::error!("{error}");
+        #[cfg(test)]
+        println!("[ERROR] {error}");
+        #[cfg(not(test))]
+        jsonrpsee::tracing::error!("{error}");
         ckb_vm::error::Error::Unexpected(error)
     }};
 }
@@ -176,7 +178,7 @@ impl<Mac: SupportMachine> Syscalls<Mac> for ImageCombinationSyscall {
             .write_with_encoder(png)
             .map_err(|err| error!(err))?;
         if buffer_size > 0 {
-            let mut base64_output = vec![];
+            let mut base64_output = vec![0u8; output.len() * 4 / 3 + 4];
             STANDARD
                 .encode_slice(output, &mut base64_output)
                 .map_err(|err| error!(err))?;

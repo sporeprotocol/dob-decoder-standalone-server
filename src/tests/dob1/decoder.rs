@@ -2,6 +2,7 @@ use std::io::Cursor;
 
 use ckb_types::h256;
 use image::codecs::png::{CompressionType, FilterType, PngEncoder};
+use serde_json::{json, Value};
 
 use crate::client::ImageFetchClient;
 use crate::decoder::DOBDecoder;
@@ -10,7 +11,6 @@ use crate::types::{
     ClusterDescriptionField, DOBClusterFormat, DOBClusterFormatV0, DOBClusterFormatV1,
     DOBDecoderFormat, DecoderLocationType,
 };
-use serde_json::{json, Value};
 
 fn generate_dob1_ingredients() -> (Value, ClusterDescriptionField) {
     let content = json!({
@@ -35,7 +35,7 @@ fn generate_dob1_ingredients() -> (Value, ClusterDescriptionField) {
                         "0x0000000000000000000000000000000000000000000000000000000000000000"
                     ),
                 },
-                pattern: Value::String("hello world".to_string()),
+                pattern: serde_json::from_str("[[\"0\",\"color\",\"Name\",\"options\",[[\"Alice\",\"#0000FF\"],[\"Bob\",\"#00FF00\"],[\"Ethan\",\"#FF0000\"],[[\"*\"],\"#FFFFFF\"]]],[\"0\",\"uri\",\"Age\",\"range\",[[[0,50],\"btcfs://b2f4560f17679d3e3fca66209ac425c660d28a252ef72444c3325c6eb0364393i0\"],[[51,100],\"btcfs://eb3910b3e32a5ed9460bd0d75168c01ba1b8f00cc0faf83e4d8b67b48ea79676i0\"],[[\"*\"],\"btcfs://11b6303eb7d887d7ade459ac27959754cd55f9f9e50345ced8e1e8f47f4581fai0\"]]],[\"1\",\"uri\",\"Score\",\"range\",[[[0,1000],\"btcfs://11d6cc654f4c0759bfee520966937a4304db2b33880c88c2a6c649e30c7b9aaei0\"],[[\"*\"],\"btcfs://e1484915b27e45b120239080fe5032580550ff9ff759eb26ee86bf8aaf90068bi0\"]]]]").unwrap(),
             },
         }),
     };
@@ -46,7 +46,7 @@ fn generate_dob1_ingredients() -> (Value, ClusterDescriptionField) {
 async fn check_fetched_image() {
     let mut fetcher = ImageFetchClient::new("https://mempool.space/api/tx/", 100);
     let uris = vec![
-        "btcfs://b2f4560f17679d3e3fca66209ac425c660d28a252ef72444c3325c6eb0364393i0".to_string(),
+        "btcfs://11d6cc654f4c0759bfee520966937a4304db2b33880c88c2a6c649e30c7b9aaei0".to_string(),
     ];
     let images = fetcher.fetch_images(&uris).await.expect("fetch images");
     let image_raw_bytes = images.first().expect("image");

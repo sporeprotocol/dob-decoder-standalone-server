@@ -66,6 +66,8 @@ pub enum Error {
     InvalidInscriptionContentHexFormat,
     #[error("Inscription content must be filled")]
     EmptyInscriptionContent,
+    #[error("Inscription index flag exceeded")]
+    ExceededInscriptionIndex,
     #[error("fs header like 'btcfs://' and 'ckbfs://' are not contained")]
     InvalidOnchainFsuriFormat,
 }
