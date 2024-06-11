@@ -177,17 +177,15 @@ impl<Mac: SupportMachine> Syscalls<Mac> for ImageCombinationSyscall {
         combination
             .write_with_encoder(png)
             .map_err(|err| error!(err))?;
+        let base64_output = STANDARD.encode(output);
         if buffer_size > 0 {
-            let mut base64_output = vec![0u8; output.len() * 4 / 3 + 4];
-            STANDARD
-                .encode_slice(output, &mut base64_output)
-                .map_err(|err| error!(err))?;
             buffer_size = buffer_size.min(base64_output.len() as u64);
-            machine
-                .memory_mut()
-                .store_bytes(buffer_addr, &base64_output[..buffer_size as usize])?;
+            machine.memory_mut().store_bytes(
+                buffer_addr,
+                &base64_output.as_bytes()[..buffer_size as usize],
+            )?;
         } else {
-            buffer_size = output.len() as u64;
+            buffer_size = base64_output.len() as u64;
         }
         machine
             .memory_mut()

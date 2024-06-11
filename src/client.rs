@@ -196,7 +196,7 @@ async fn parse_image_from_btcfs(url: &Url, index: usize) -> Result<Vec<u8>, Erro
         .ok_or(Error::InvalidBtcTransactionFormat)?
         .as_array()
         .ok_or(Error::InvalidBtcTransactionFormat)?
-        .get(0)
+        .first()
         .ok_or(Error::InvalidBtcTransactionFormat)?;
     let mut witness = vin
         .get("inner_witnessscript_asm")
