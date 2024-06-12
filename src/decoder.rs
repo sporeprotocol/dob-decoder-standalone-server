@@ -193,11 +193,12 @@ impl DOBDecoder {
         let content_type =
             String::from_utf8(molecule_spore_data.content_type().raw_data().to_vec())
                 .map_err(|_| Error::SporeDataContentTypeUncompatible)?;
-        if !self
-            .settings
-            .protocol_versions
-            .iter()
-            .any(|version| content_type.starts_with(version))
+        if content_type != ""
+            && !self
+                .settings
+                .protocol_versions
+                .iter()
+                .any(|version| content_type.starts_with(version))
         {
             return Err(Error::DOBVersionUnexpected);
         }
