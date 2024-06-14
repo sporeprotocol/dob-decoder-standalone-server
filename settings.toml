@@ -28,6 +28,10 @@ hash_type = "data1"
 code_hash = "0x5e063b4c0e7abeaa6a428df3b693521a3050934cf3b0ae97a800d1bc31449398"
 hash_type = "data1"
 
+[[available_spores]]
+code_hash = "0x0b1f412fbae26853ff7d082d422c2bdd9e2ff94ee8aaec11240a5b34cc6e890f"
+hash_type = "type"
+
 # all deployed on-chain Cluster contracts binary hash (order from new to old)
 # refer to: https://github.com/sporeprotocol/spore-contract/blob/master/docs/VERSIONS.md
 [[available_clusters]]
@@ -53,4 +57,9 @@ out_index = 0
 [[onchain_decoder_deployment]]
 code_hash = "0x1c84212ebd817e9de09d2a79f85cc421b684eda63409cfa75688f98716e77b5f"
 tx_hash = "0xc877aca405da6a3038054cb5da20f2db0ed46bb643007d4e0b1d3fe7da155bf0"
+out_index = 0
+
+[[onchain_decoder_deployment]]
+code_hash = "0x13cac78ad8482202f18f9df4ea707611c35f994375fa03ae79121312dda9925c"
+tx_hash = "0xf6ebcf3881b9ffe64e94f4ee2f643cfc69515faba1dadf4a9e4a7d3f9ecc4094"
 out_index = 0
