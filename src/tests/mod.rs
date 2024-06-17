@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use ckb_types::h256;
 
 use crate::types::{HashType, OnchainDecoderDeployment, ScriptId, Settings};
@@ -5,10 +7,24 @@ use crate::types::{HashType, OnchainDecoderDeployment, ScriptId, Settings};
 mod dob0;
 mod dob1;
 
+#[macro_export]
+macro_rules! hashmap {
+    ($(($key:expr, $value:expr) $(,)?)+) => {{
+        let mut map = HashMap::new();
+        $(
+            map.insert($key.to_owned(), $value.to_owned());
+        )+
+        map
+    }};
+}
+
 fn prepare_settings(version: &str) -> Settings {
     Settings {
         ckb_rpc: "https://testnet.ckbapp.dev/".to_string(),
-        image_fetcher_url: "https://mempool.space/api/tx/".to_string(),
+        image_fetcher_url: hashmap!(
+            ("btcfs", "https://mempool.space/api/tx/"),
+            ("ipfs", "https://ipfs.io/ipfs/")
+        ),
         protocol_versions: vec![version.to_string()],
         ckb_vm_runner: "ckb-vm-runner".to_string(),
         decoders_cache_directory: "cache/decoders".parse().unwrap(),

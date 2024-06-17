@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::Cursor;
 
 use ckb_types::h256;
@@ -6,6 +7,7 @@ use serde_json::{json, Value};
 
 use crate::client::ImageFetchClient;
 use crate::decoder::DOBDecoder;
+use crate::hashmap;
 use crate::tests::prepare_settings;
 use crate::types::{
     ClusterDescriptionField, DOBClusterFormat, DOBClusterFormatV0, DOBClusterFormatV1,
@@ -42,20 +44,43 @@ fn generate_dob1_ingredients() -> (Value, ClusterDescriptionField) {
     (content, metadata)
 }
 
+macro_rules! png_decoder {
+    ($image:expr) => {{
+        let rgba = image::load_from_memory(&$image).expect("load image");
+        let mut inner_buffer = Vec::new();
+        let buffer = Cursor::new(&mut inner_buffer);
+        let encoder =
+            PngEncoder::new_with_quality(buffer, CompressionType::Best, FilterType::NoFilter);
+        rgba.write_with_encoder(encoder).expect("write image");
+        inner_buffer
+    }};
+    () => {};
+}
+
 #[tokio::test]
 async fn check_fetched_image() {
-    let mut fetcher = ImageFetchClient::new("https://mempool.space/api/tx/", 100);
+    let url = hashmap!(("btcfs", "https://mempool.space/api/tx/"));
+    let mut fetcher = ImageFetchClient::new(&url, 100);
     let uris = vec![
         "btcfs://11d6cc654f4c0759bfee520966937a4304db2b33880c88c2a6c649e30c7b9aaei0".to_string(),
     ];
     let images = fetcher.fetch_images(&uris).await.expect("fetch images");
     let image_raw_bytes = images.first().expect("image");
-    let rgba = image::load_from_memory(&image_raw_bytes).expect("load image");
-    let mut inner_buffer = Vec::new();
-    let buffer = Cursor::new(&mut inner_buffer);
-    let encoder = PngEncoder::new_with_quality(buffer, CompressionType::Best, FilterType::NoFilter);
-    rgba.write_with_encoder(encoder).expect("write image");
-    println!("image size: {:?}", inner_buffer.len());
+    let png = png_decoder!(image_raw_bytes);
+    println!("image size: {:?}", png.len());
+    // std::fs::write("dob1.png", &png).expect("write image");
+}
+
+#[tokio::test]
+async fn check_ipfs_image() {
+    let url = hashmap!(("ipfs", "https://ipfs.io/ipfs/"));
+    let mut fetcher = ImageFetchClient::new(&url, 100);
+    let uris = vec!["ipfs://QmWwrfhWxtkSD526cghpTMqHJ468iCy8sPYA5S1q4BTams".to_string()];
+    let images = fetcher.fetch_images(&uris).await.expect("fetch images");
+    let image_raw_bytes = images.first().expect("image");
+    let png = png_decoder!(image_raw_bytes);
+    println!("image size: {:?}", png.len());
+    // std::fs::write("dob1.png", &png).expect("write image");
 }
 
 #[tokio::test]

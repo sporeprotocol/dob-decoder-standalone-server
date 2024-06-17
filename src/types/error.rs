@@ -70,4 +70,8 @@ pub enum Error {
     ExceededInscriptionIndex,
     #[error("fs header like 'btcfs://' and 'ckbfs://' are not contained")]
     InvalidOnchainFsuriFormat,
+    #[error("fs header like 'btcfs://' and 'ckbfs://' are not configured in config file")]
+    FsuriNotFoundInConfig,
+    #[error("IPFS Gateway responsed bad")]
+    FetchFromIpfsError,
 }

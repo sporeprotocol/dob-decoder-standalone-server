@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use ckb_types::{core::ScriptHashType, H256};
 use serde::Deserialize;
@@ -171,7 +171,7 @@ pub struct ScriptId {
 pub struct Settings {
     pub protocol_versions: Vec<String>,
     pub ckb_rpc: String,
-    pub image_fetcher_url: String,
+    pub image_fetcher_url: HashMap<String, String>,
     pub rpc_server_address: String,
     pub ckb_vm_runner: String,
     pub decoders_cache_directory: PathBuf,

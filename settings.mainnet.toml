@@ -7,7 +7,7 @@ protocol_versions = [
 ckb_rpc = "https://mainnet.ckb.dev/"
 
 # connect to the image fetcher service
-image_fetcher_url = "https://mempool.space/api/tx/"
+image_fetcher_url = { btcfs = "https://mempool.space/api/tx/", ipfs = "https://ipfs.io/ipfs/" }
 
 # address that rpc server running at in case of standalone server mode
 rpc_server_address = "0.0.0.0:8090"

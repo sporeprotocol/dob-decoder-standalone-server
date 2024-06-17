@@ -1,6 +1,6 @@
 #![allow(clippy::assigning_clones)]
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -119,14 +119,17 @@ impl RpcClient {
 }
 
 pub struct ImageFetchClient {
-    base_url: Url,
+    base_url: HashMap<String, Url>,
     images_cache: VecDeque<(Url, Vec<u8>)>,
     max_cache_size: usize,
 }
 
 impl ImageFetchClient {
-    pub fn new(base_url: &str, cache_size: usize) -> Self {
-        let base_url = Url::parse(base_url).expect("base url, e.g. \"http://127.0.0.1");
+    pub fn new(base_url: &HashMap<String, String>, cache_size: usize) -> Self {
+        let base_url = base_url
+            .iter()
+            .map(|(k, v)| (k.clone(), Url::parse(v).expect("url")))
+            .collect::<HashMap<_, _>>();
         Self {
             base_url,
             images_cache: VecDeque::new(),
@@ -137,19 +140,53 @@ impl ImageFetchClient {
     pub async fn fetch_images(&mut self, images_uri: &[String]) -> Result<Vec<Vec<u8>>, Error> {
         let mut requests = vec![];
         for uri in images_uri {
-            let (tx_hash, index) = parse_uri(uri)?;
-            let url = self.base_url.join(&tx_hash).expect("image url");
-            let cached_image = self.images_cache.iter().find(|(v, _)| v == &url);
-            if let Some((_, image)) = cached_image {
-                requests.push(async { Ok((url, true, image.clone())) }.boxed());
-            } else {
-                requests.push(
-                    async move {
-                        let image = parse_image_from_btcfs(&url, index).await?;
-                        Ok((url, false, image))
+            match uri.try_into()? {
+                URI::BTCFS(tx_hash, index) => {
+                    let url = self
+                        .base_url
+                        .get("btcfs")
+                        .ok_or(Error::FsuriNotFoundInConfig)?
+                        .join(&tx_hash)
+                        .expect("image url");
+                    let cached_image = self.images_cache.iter().find(|(v, _)| v == &url);
+                    if let Some((_, image)) = cached_image {
+                        requests.push(async { Ok((url, true, image.clone())) }.boxed());
+                    } else {
+                        requests.push(
+                            async move {
+                                let image = parse_image_from_btcfs(&url, index).await?;
+                                Ok((url, false, image))
+                            }
+                            .boxed(),
+                        );
                     }
-                    .boxed(),
-                );
+                }
+                URI::IPFS(cid) => {
+                    let url = self
+                        .base_url
+                        .get("ipfs")
+                        .ok_or(Error::FsuriNotFoundInConfig)?
+                        .join(&cid)
+                        .expect("image url");
+                    let cached_image = self.images_cache.iter().find(|(v, _)| v == &url);
+                    if let Some((_, image)) = cached_image {
+                        requests.push(async { Ok((url, true, image.clone())) }.boxed());
+                    } else {
+                        requests.push(
+                            async move {
+                                let image = reqwest::get(url.clone())
+                                    .await
+                                    .map_err(|_| Error::FetchFromIpfsError)?
+                                    .bytes()
+                                    .await
+                                    .map_err(|_| Error::FetchFromIpfsError)?
+                                    .to_vec();
+                                Ok((url, false, image))
+                            }
+                            .boxed(),
+                        );
+                    }
+                }
             }
         }
         let mut images = vec![];
@@ -168,19 +205,34 @@ impl ImageFetchClient {
     }
 }
 
-fn parse_uri(uri: &str) -> Result<(String, usize), Error> {
-    let header = "xxxfs://".len();
-    let body = uri.chars().skip(header).collect::<String>();
-    let parts: Vec<&str> = body.split('i').collect::<Vec<_>>();
-    if parts.len() != 2 {
-        return Err(Error::InvalidOnchainFsuriFormat);
+#[allow(clippy::upper_case_acronyms)]
+enum URI {
+    BTCFS(String, usize),
+    IPFS(String),
+}
+
+impl TryFrom<&String> for URI {
+    type Error = Error;
+
+    fn try_from(uri: &String) -> Result<Self, Error> {
+        if uri.starts_with("btcfs://") {
+            let body = uri.chars().skip("btcfs://".len()).collect::<String>();
+            let parts: Vec<&str> = body.split('i').collect::<Vec<_>>();
+            if parts.len() != 2 {
+                return Err(Error::InvalidOnchainFsuriFormat);
+            }
+            let tx_hash = parts[0].to_string();
+            let index = parts[1]
+                .parse()
+                .map_err(|_| Error::InvalidOnchainFsuriFormat)?;
+            Ok(URI::BTCFS(tx_hash, index))
+        } else if uri.starts_with("ipfs://") {
+            let hash = uri.chars().skip("ipfs://".len()).collect::<String>();
+            Ok(URI::IPFS(hash))
+        } else {
+            Err(Error::InvalidOnchainFsuriFormat)
+        }
     }
-    Ok((
-        parts[0].to_string(),
-        parts[1]
-            .parse()
-            .map_err(|_| Error::InvalidOnchainFsuriFormat)?,
-    ))
 }
 
 async fn parse_image_from_btcfs(url: &Url, index: usize) -> Result<Vec<u8>, Error> {
