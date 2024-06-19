@@ -90,3 +90,13 @@ refer to error definitions [here](https://github.com/sporeprotocol/dob-decoder-s
 | 1026 | DecoderBinaryNotFoundInCell |
 | 1027 | JsonRpcRequestError |
 | 1028 | SystemTimeError |
+| 1029 | JsonRpcReques |
+| 1030 | FetchFromBtcNodeError |
+| 1031 | InvalidBtcTransactionFormat |
+| 1032 | InvalidInscriptionFormat |
+| 1033 | InvalidInscriptionContentHexFormat |
+| 1034 | EmptyInscriptionContent |
+| 1035 | ExceededInscriptionIndex |
+| 1036 | InvalidOnchainFsuriFormat |
+| 1037 | FsuriNotFoundInConfig |
+| 1038 | FetchFromIpfsError |

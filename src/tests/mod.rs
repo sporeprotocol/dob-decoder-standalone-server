@@ -78,6 +78,15 @@ fn prepare_settings(version: &str) -> Settings {
                 ),
                 out_index: 0,
             },
+            OnchainDecoderDeployment {
+                code_hash: h256!(
+                    "0xac35b0e6178dc4a89fb85194b4ac0b60eed2b6ce9f10bf7bf2ee76190c3a0071"
+                ),
+                tx_hash: h256!(
+                    "0x1918a656f7c52ca5fbe7a903903c9bbc89d3e05525b4bb9f323fceb1a5bde51f"
+                ),
+                out_index: 0,
+            },
         ],
         ..Default::default()
     }
