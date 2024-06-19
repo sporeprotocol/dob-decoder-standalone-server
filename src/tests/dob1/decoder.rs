@@ -126,12 +126,11 @@ async fn test_fetch_dob1() {
     let decoder = DOBDecoder::new(settings);
     let dob1_spore_id =
         hex::decode("2fa44c408dfb78f5f032f6cb30966f9122df7e906c38bcbbd1fe9751ad3b2083").unwrap();
-    let (_, metadata) = decoder
+    let ((_, dna), metadata) = decoder
         .fetch_decode_ingredients(dob1_spore_id.try_into().unwrap())
         .await
         .unwrap();
-    let dob1_dna = "ac7b88aabbcc687474703a2f2f3132372e302e302e313a383039300000";
-    let output = decoder.decode_dna(dob1_dna, metadata).await.unwrap();
+    let output = decoder.decode_dna(&dna, metadata).await.unwrap();
     println!("dob1 output: {}", output);
     // use base64::{engine::general_purpose::STANDARD, Engine};
     // let dob1_output: Value = serde_json::from_str(&output).unwrap();
