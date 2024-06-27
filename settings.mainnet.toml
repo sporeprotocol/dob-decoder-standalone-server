@@ -41,3 +41,8 @@ out_index = 0
 code_hash = "0x1c84212ebd817e9de09d2a79f85cc421b684eda63409cfa75688f98716e77b5f"
 tx_hash = "0xa84f9426f378109dfa717cb3a29fb79b764bf466a7c2588aebcdecc874bcc984"
 out_index = 0
+
+[[onchain_decoder_deployment]]
+code_hash = "0x13cac78ad8482202f18f9df4ea707611c35f994375fa03ae79121312dda9925c"
+tx_hash = "0x71023885a2178648be6a7f138ee49379000a82cda98dd8adabee99eaaca42fde"
+out_index = 0
