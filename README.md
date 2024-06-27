@@ -89,3 +89,4 @@ refer to error definitions [here](https://github.com/sporeprotocol/dob-decoder-s
 | 1025 | DecoderBinaryHashInvalid |
 | 1026 | DecoderBinaryNotFoundInCell |
 | 1027 | JsonRpcRequestError |
+| 1028 | SystemTimeError |

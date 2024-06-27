@@ -77,5 +77,5 @@ pub fn execute_riscv_binary(
     args: Vec<Bytes>,
 ) -> Result<(i8, Vec<String>), Box<dyn std::error::Error>> {
     let code = std::fs::read(binary_path)?.into();
-    Ok(main_asm(code, args)?)
+    main_asm(code, args)
 }

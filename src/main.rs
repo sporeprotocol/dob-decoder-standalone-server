@@ -26,6 +26,7 @@ async fn main() {
         serde_json::to_string_pretty(&settings).unwrap()
     );
     let rpc_server_address = settings.rpc_server_address.clone();
+    let cache_expiration = settings.dobs_cache_expiration_sec;
     let decoder = decoder::DOBDecoder::new(settings);
 
     tracing::info!("running decoder server at {}", rpc_server_address);
@@ -35,7 +36,7 @@ async fn main() {
         .await
         .expect("build http_server");
 
-    let rpc_methods = server::DecoderStandaloneServer::new(decoder);
+    let rpc_methods = server::DecoderStandaloneServer::new(decoder, cache_expiration);
     let handler = http_server.start(rpc_methods.into_rpc());
 
     tokio::signal::ctrl_c().await.unwrap();
