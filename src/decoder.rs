@@ -193,7 +193,7 @@ impl DOBDecoder {
         let content_type =
             String::from_utf8(molecule_spore_data.content_type().raw_data().to_vec())
                 .map_err(|_| Error::SporeDataContentTypeUncompatible)?;
-        if content_type != ""
+        if !content_type.is_empty()
             && !self
                 .settings
                 .protocol_versions

@@ -67,6 +67,8 @@ pub enum Error {
     DecoderBinaryNotFoundInCell,
     #[error("error ocurred while requesing json-rpc")]
     JsonRpcRequestError,
+    #[error("error ocurred while requiring system timestamp")]
+    SystemTimeError,
 }
 
 #[cfg(feature = "standalone_server")]
@@ -137,9 +139,9 @@ pub enum HashType {
     Type,
 }
 
-impl Into<ScriptHashType> for &HashType {
-    fn into(self) -> ScriptHashType {
-        match self {
+impl From<&HashType> for ScriptHashType {
+    fn from(value: &HashType) -> Self {
+        match value {
             HashType::Data => ScriptHashType::Data,
             HashType::Data1 => ScriptHashType::Data1,
             HashType::Data2 => ScriptHashType::Data2,
@@ -165,6 +167,7 @@ pub struct Settings {
     pub ckb_vm_runner: String,
     pub decoders_cache_directory: PathBuf,
     pub dobs_cache_directory: PathBuf,
+    pub dobs_cache_expiration_sec: u64,
     pub onchain_decoder_deployment: Vec<OnchainDecoderDeployment>,
     pub available_spores: Vec<ScriptId>,
     pub available_clusters: Vec<ScriptId>,
