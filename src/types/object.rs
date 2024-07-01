@@ -25,7 +25,8 @@ impl From<Error> for ErrorCode {
 
 // value on `description` field in Cluster data, adapting for DOB protocol in JSON format
 #[derive(Deserialize)]
-#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
+#[cfg_attr(feature = "standalone_server", derive(Serialize))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct ClusterDescriptionField {
     pub description: String,
     pub dob: DOBClusterFormat,
@@ -59,7 +60,8 @@ impl ClusterDescriptionField {
 //
 // note: if `ver` is empty, `dob_ver_0` must uniquely exist
 #[derive(Deserialize)]
-#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
+#[cfg_attr(feature = "standalone_server", derive(Serialize))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct DOBClusterFormat {
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -92,14 +94,16 @@ impl DOBClusterFormat {
 }
 
 #[derive(Deserialize)]
-#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
+#[cfg_attr(feature = "standalone_server", derive(Serialize))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct DOBClusterFormatV0 {
     pub decoder: DOBDecoderFormat,
     pub pattern: Value,
 }
 
 #[derive(Deserialize)]
-#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
+#[cfg_attr(feature = "standalone_server", derive(Serialize))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct DOBClusterFormatV1 {
     pub traits: DOBClusterFormatV0,
     pub images: DOBClusterFormatV0,
@@ -107,7 +111,8 @@ pub struct DOBClusterFormatV1 {
 
 // restricted decoder locator type
 #[derive(Deserialize)]
-#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
+#[cfg_attr(feature = "standalone_server", derive(Serialize))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub enum DecoderLocationType {
     #[serde(rename(serialize = "type_id", deserialize = "type_id"))]
     TypeId,
@@ -117,7 +122,8 @@ pub enum DecoderLocationType {
 
 // decoder location information
 #[derive(Deserialize)]
-#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
+#[cfg_attr(feature = "standalone_server", derive(Serialize))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct DOBDecoderFormat {
     #[serde(rename(serialize = "type", deserialize = "type"))]
     pub location: DecoderLocationType,
