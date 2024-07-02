@@ -1,17 +1,36 @@
+use std::collections::HashMap;
+
 use ckb_types::h256;
 
 use crate::types::{HashType, OnchainDecoderDeployment, ScriptId, Settings};
 
-mod decoder;
-mod legacy_decoder;
+mod dob0;
+mod dob1;
+
+#[macro_export]
+macro_rules! hashmap {
+    ($(($key:expr, $value:expr) $(,)?)+) => {{
+        let mut map = HashMap::new();
+        $(
+            map.insert($key.to_owned(), $value.to_owned());
+        )+
+        map
+    }};
+}
 
 fn prepare_settings(version: &str) -> Settings {
     Settings {
         ckb_rpc: "https://testnet.ckbapp.dev/".to_string(),
+        image_fetcher_url: hashmap!(
+            ("btcfs", "https://mempool.space/api/tx/"),
+            ("ipfs", "https://ipfs.io/ipfs/")
+        ),
         protocol_versions: vec![version.to_string()],
         ckb_vm_runner: "ckb-vm-runner".to_string(),
         decoders_cache_directory: "cache/decoders".parse().unwrap(),
         dobs_cache_directory: "cache/dobs".parse().unwrap(),
+        dob1_max_combination: 5,
+        dob1_max_cache_size: 100,
         available_spores: vec![
             ScriptId {
                 code_hash: h256!(
@@ -56,6 +75,15 @@ fn prepare_settings(version: &str) -> Settings {
                 ),
                 tx_hash: h256!(
                     "0x987cf95d129a2dcc2cdf7bd387c1bd888fa407e3c5a3d511fd80c80dcf6c6b67"
+                ),
+                out_index: 0,
+            },
+            OnchainDecoderDeployment {
+                code_hash: h256!(
+                    "0xac35b0e6178dc4a89fb85194b4ac0b60eed2b6ce9f10bf7bf2ee76190c3a0071"
+                ),
+                tx_hash: h256!(
+                    "0x1918a656f7c52ca5fbe7a903903c9bbc89d3e05525b4bb9f323fceb1a5bde51f"
                 ),
                 out_index: 0,
             },

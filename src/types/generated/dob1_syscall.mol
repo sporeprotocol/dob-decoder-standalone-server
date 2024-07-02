@@ -1,0 +1,11 @@
+vector URI <byte>;
+vector Color <byte>;
+vector RawImage <byte>;
+
+union Item {
+    URI,
+    Color,
+    RawImage,
+}
+
+vector ItemVec <Item>;
