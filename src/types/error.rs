@@ -56,6 +56,8 @@ pub enum Error {
     DecoderBinaryNotFoundInCell,
     #[error("error ocurred while requesing json-rpc")]
     JsonRpcRequestError,
+    #[error("system time calculation error")]
+    SystemTimeError,
     #[error("BTC node responsed bad")]
     FetchFromBtcNodeError,
     #[error("BTC transaction format broken")]
