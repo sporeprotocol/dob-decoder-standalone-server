@@ -84,7 +84,7 @@ async fn check_fetched_image() {
 async fn check_ipfs_image() {
     let url = hashmap!(("ipfs", "https://ipfs.io/ipfs/"));
     let mut fetcher = ImageFetchClient::new(&url, 100);
-    let uris = vec!["ipfs://QmWwrfhWxtkSD526cghpTMqHJ468iCy8sPYA5S1q4BTams".to_string()];
+    let uris = vec!["ipfs://QmeQ6TfqzsjJCMtYmpbyZeMxiSzQGc6Aqg6NyJTeLYrrJr".to_string()];
     let images = fetcher.fetch_images(&uris).await.expect("fetch images");
     let image_raw_bytes = images.first().expect("image");
     let png = png_decoder!(image_raw_bytes);
