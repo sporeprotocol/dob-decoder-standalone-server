@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use ckb_types::{core::ScriptHashType, H256};
-use serde::Deserialize;
+use serde::{ser::SerializeMap, Deserialize};
 use serde_json::Value;
 
 #[cfg(feature = "standalone_server")]
@@ -71,6 +71,11 @@ pub enum Error {
     SystemTimeError,
 }
 
+pub enum Dob<'a> {
+    V0(&'a DOBClusterFormatV0),
+    V1(&'a DOBClusterFormatV1),
+}
+
 #[cfg(feature = "standalone_server")]
 impl From<Error> for ErrorCode {
     fn from(value: Error) -> Self {
@@ -86,20 +91,85 @@ pub struct ClusterDescriptionField {
     pub dob: DOBClusterFormat,
 }
 
+impl ClusterDescriptionField {
+    pub fn unbox_dob(&self) -> Result<Dob, Error> {
+        match self.dob.ver {
+            Some(0) | None => {
+                let dob0 = self
+                    .dob
+                    .dob_ver_0
+                    .as_ref()
+                    .ok_or(Error::ClusterDataUncompatible)?;
+                Ok(Dob::V0(dob0))
+            }
+            Some(1) => {
+                let dob1 = self
+                    .dob
+                    .dob_ver_1
+                    .as_ref()
+                    .ok_or(Error::ClusterDataUncompatible)?;
+                Ok(Dob::V1(dob1))
+            }
+            _ => Err(Error::DOBVersionUnexpected),
+        }
+    }
+}
+
 // contains `decoder` and `pattern` identifiers
+//
+// note: if `ver` is empty, `dob_ver_0` must uniquely exist
 #[derive(Deserialize)]
 #[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
 pub struct DOBClusterFormat {
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ver: Option<u8>,
+    #[serde(flatten)]
+    pub dob_ver_0: Option<DOBClusterFormatV0>,
+    #[serde(flatten)]
+    pub dob_ver_1: Option<DOBClusterFormatV1>,
+}
+
+#[derive(Deserialize)]
+#[cfg_attr(feature = "standalone_server", derive(Serialize))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
+pub struct DOBClusterFormatV0 {
     pub decoder: DOBDecoderFormat,
     pub pattern: Value,
 }
 
+#[derive(Deserialize)]
+#[cfg_attr(feature = "standalone_server", derive(Serialize))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
+pub struct DOBClusterFormatV1 {
+    pub decoders: Vec<DOBClusterFormatV0>,
+}
+
+#[cfg(test)]
+impl DOBClusterFormat {
+    #[allow(dead_code)]
+    pub fn new_dob0(dob_ver_0: DOBClusterFormatV0) -> Self {
+        Self {
+            ver: Some(0),
+            dob_ver_0: Some(dob_ver_0),
+            dob_ver_1: None,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn new_dob1(dob_ver_1: DOBClusterFormatV1) -> Self {
+        Self {
+            ver: Some(1),
+            dob_ver_0: None,
+            dob_ver_1: Some(dob_ver_1),
+        }
+    }
+}
+
 // restricted decoder locator type
 #[derive(Deserialize)]
-#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
+#[cfg_attr(feature = "standalone_server", derive(Serialize))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub enum DecoderLocationType {
     #[serde(rename(serialize = "type_id", deserialize = "type_id"))]
     TypeId,
@@ -109,7 +179,8 @@ pub enum DecoderLocationType {
 
 // decoder location information
 #[derive(Deserialize)]
-#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
+#[cfg_attr(feature = "standalone_server", derive(Serialize))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct DOBDecoderFormat {
     #[serde(rename(serialize = "type", deserialize = "type"))]
     pub location: DecoderLocationType,
@@ -171,4 +242,45 @@ pub struct Settings {
     pub onchain_decoder_deployment: Vec<OnchainDecoderDeployment>,
     pub available_spores: Vec<ScriptId>,
     pub available_clusters: Vec<ScriptId>,
+}
+
+#[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
+#[derive(Default)]
+pub struct StandardDOBOutput {
+    pub name: String,
+    pub traits: Vec<ParsedTrait>,
+}
+
+pub struct ParsedTrait {
+    pub type_: String,
+    pub value: Value,
+}
+
+impl Serialize for ParsedTrait {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(1))?;
+        map.serialize_entry(&self.type_, &self.value)?;
+        map.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for ParsedTrait {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let map: Value = Deserialize::deserialize(deserializer)?;
+        map.as_object()
+            .and_then(|map| map.iter().next())
+            .map(|(type_, value)| {
+                Ok(Self {
+                    type_: type_.to_string(),
+                    value: value.clone(),
+                })
+            })
+            .unwrap_or_else(|| Err(serde::de::Error::custom("invalid ParsedTrait")))
+    }
 }
