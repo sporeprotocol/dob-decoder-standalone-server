@@ -17,7 +17,7 @@ use crate::{
     },
 };
 
-pub fn build_type_id_search_option(type_id_args: [u8; 32]) -> CellQueryOptions {
+fn build_type_id_search_option(type_id_args: [u8; 32]) -> CellQueryOptions {
     let type_script = Script::new_builder()
         .code_hash(TYPE_ID_CODE_HASH.0.pack())
         .hash_type(ScriptHashType::Type.into())
@@ -26,7 +26,11 @@ pub fn build_type_id_search_option(type_id_args: [u8; 32]) -> CellQueryOptions {
     CellQueryOptions::new_type(type_script)
 }
 
-pub fn build_batch_search_options(
+fn build_type_script_search_option(type_script: Script) -> CellQueryOptions {
+    CellQueryOptions::new_type(type_script)
+}
+
+fn build_batch_search_options(
     type_args: [u8; 32],
     available_script_ids: &[ScriptId],
 ) -> Vec<CellQueryOptions> {
@@ -149,8 +153,10 @@ pub async fn fetch_dob_metadata(
 }
 
 // search on-chain decoder cell, deployed with type_id feature enabled
-pub async fn fetch_decoder_binary(rpc: &RpcClient, decoder_id: [u8; 32]) -> Result<Vec<u8>, Error> {
-    let decoder_search_option = build_type_id_search_option(decoder_id);
+async fn fetch_decoder_binary(
+    rpc: &RpcClient,
+    decoder_search_option: CellQueryOptions,
+) -> Result<Vec<u8>, Error> {
     let decoder_cell = rpc
         .get_cells(decoder_search_option.into(), 1, None)
         .await
@@ -167,7 +173,7 @@ pub async fn fetch_decoder_binary(rpc: &RpcClient, decoder_id: [u8; 32]) -> Resu
 }
 
 // search on-chain decoder cell, directly by its tx_hash and out_index
-pub async fn fetch_decoder_binary_directly(
+async fn fetch_decoder_binary_directly(
     rpc: &RpcClient,
     tx_hash: H256,
     out_index: u32,
@@ -190,17 +196,18 @@ pub async fn parse_decoder_path(
     decoder: &DOBDecoderFormat,
     settings: &Settings,
 ) -> Result<PathBuf, Error> {
-    let decoder_path = match decoder.location {
+    let mut decoder_path = settings.decoders_cache_directory.clone();
+    match decoder.location {
         DecoderLocationType::CodeHash => {
-            let mut decoder_path = settings.decoders_cache_directory.clone();
-            decoder_path.push(format!("code_hash_{}.bin", hex::encode(&decoder.hash)));
+            let hash = decoder.hash.as_ref().ok_or(Error::DecoderHashNotFound)?;
+            decoder_path.push(format!("code_hash_{}.bin", hex::encode(hash)));
             if !decoder_path.exists() {
                 let onchain_decoder =
                     settings
                         .onchain_decoder_deployment
                         .iter()
                         .find_map(|deployment| {
-                            if deployment.code_hash == decoder.hash {
+                            if &deployment.code_hash == hash {
                                 Some(fetch_decoder_binary_directly(
                                     rpc,
                                     deployment.tx_hash.clone(),
@@ -214,23 +221,39 @@ pub async fn parse_decoder_path(
                     return Err(Error::NativeDecoderNotFound);
                 };
                 let decoder_file_content = decoder_binary.await?;
-                if ckb_hash::blake2b_256(&decoder_file_content) != decoder.hash.0 {
+                if ckb_hash::blake2b_256(&decoder_file_content) != hash.0 {
                     return Err(Error::DecoderBinaryHashInvalid);
                 }
                 std::fs::write(decoder_path.clone(), decoder_file_content)
                     .map_err(|_| Error::DecoderBinaryPathInvalid)?;
             }
-            decoder_path
         }
         DecoderLocationType::TypeId => {
-            let mut decoder_path = settings.decoders_cache_directory.clone();
-            decoder_path.push(format!("type_id_{}.bin", hex::encode(&decoder.hash)));
+            let hash = decoder.hash.as_ref().ok_or(Error::DecoderHashNotFound)?;
+            decoder_path.push(format!("type_id_{}.bin", hex::encode(hash)));
             if !decoder_path.exists() {
-                let decoder_binary = fetch_decoder_binary(rpc, decoder.hash.clone().into()).await?;
+                let decoder_search_option = build_type_id_search_option(hash.clone().into());
+                let decoder_binary = fetch_decoder_binary(rpc, decoder_search_option).await?;
                 std::fs::write(decoder_path.clone(), decoder_binary)
                     .map_err(|_| Error::DecoderBinaryPathInvalid)?;
             }
-            decoder_path
+        }
+        DecoderLocationType::TypeScript => {
+            let script: Script = decoder
+                .script
+                .clone()
+                .ok_or(Error::DecoderScriptNotFound)?
+                .into();
+            decoder_path.push(format!(
+                "type_script_{}.bin",
+                hex::encode(script.calc_script_hash().raw_data())
+            ));
+            if !decoder_path.exists() {
+                let decoder_search_option = build_type_script_search_option(script);
+                let decoder_binary = fetch_decoder_binary(rpc, decoder_search_option).await?;
+                std::fs::write(decoder_path.clone(), decoder_binary)
+                    .map_err(|_| Error::DecoderBinaryPathInvalid)?;
+            }
         }
     };
     Ok(decoder_path)

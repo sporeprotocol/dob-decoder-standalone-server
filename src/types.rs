@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use ckb_jsonrpc_types::Script;
 use ckb_types::{core::ScriptHashType, H256};
 use serde::{ser::SerializeMap, Deserialize};
 use serde_json::Value;
@@ -69,6 +70,10 @@ pub enum Error {
     JsonRpcRequestError,
     #[error("error ocurred while requiring system timestamp")]
     SystemTimeError,
+    #[error("no decoder hash fund in DOB metadata")]
+    DecoderHashNotFound,
+    #[error("no decoder type_script fund in DOB metadata")]
+    DecoderScriptNotFound,
 }
 
 pub enum Dob<'a> {
@@ -175,6 +180,8 @@ pub enum DecoderLocationType {
     TypeId,
     #[serde(rename(serialize = "code_hash", deserialize = "code_hash"))]
     CodeHash,
+    #[serde(rename(serialize = "type_script", deserialize = "type_script"))]
+    TypeScript,
 }
 
 // decoder location information
@@ -184,7 +191,9 @@ pub enum DecoderLocationType {
 pub struct DOBDecoderFormat {
     #[serde(rename(serialize = "type", deserialize = "type"))]
     pub location: DecoderLocationType,
-    pub hash: H256,
+    pub hash: Option<H256>,
+    // only exists when `location` is `TypeScript`
+    pub script: Option<Script>,
 }
 
 // asscoiate `code_hash` of decoder binary with its onchain deployment information

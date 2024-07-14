@@ -21,12 +21,18 @@ fn generate_nervape_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
     let decoder = if onchain_decoder {
         DOBDecoderFormat {
             location: DecoderLocationType::TypeId,
-            hash: h256!("0x11b80e7161c4eed1101e52a5835e9f58008334bc75d5561fefcc62ccc56221cf"),
+            hash: Some(h256!(
+                "0x11b80e7161c4eed1101e52a5835e9f58008334bc75d5561fefcc62ccc56221cf"
+            )),
+            script: None,
         }
     } else {
         DOBDecoderFormat {
             location: DecoderLocationType::CodeHash,
-            hash: h256!("0xb82abd59ade361a014f0abb692f71b0feb880693c3ccb95b9137b73551d872ce"),
+            hash: Some(h256!(
+                "0xb82abd59ade361a014f0abb692f71b0feb880693c3ccb95b9137b73551d872ce"
+            )),
+            script: None,
         }
     };
     let nervape_metadata = ClusterDescriptionField {
@@ -48,12 +54,18 @@ fn generate_unicorn_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
     let decoder = if onchain_decoder {
         DOBDecoderFormat {
             location: DecoderLocationType::TypeId,
-            hash: h256!("0x11b80e7161c4eed1101e52a5835e9f58008334bc75d5561fefcc62ccc56221cf"),
+            hash: Some(h256!(
+                "0x11b80e7161c4eed1101e52a5835e9f58008334bc75d5561fefcc62ccc56221cf"
+            )),
+            script: None,
         }
     } else {
         DOBDecoderFormat {
             location: DecoderLocationType::CodeHash,
-            hash: h256!("0xb82abd59ade361a014f0abb692f71b0feb880693c3ccb95b9137b73551d872ce"),
+            hash: Some(h256!(
+                "0xb82abd59ade361a014f0abb692f71b0feb880693c3ccb95b9137b73551d872ce"
+            )),
+            script: None,
         }
     };
     let unicorn_metadata = ClusterDescriptionField {
