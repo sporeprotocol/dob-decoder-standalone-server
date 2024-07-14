@@ -25,12 +25,18 @@ fn generate_unicorn_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
     let decoder = if onchain_decoder {
         DOBDecoderFormat {
             location: DecoderLocationType::TypeId,
-            hash: h256!("0x564870fab22ae50ac2bf1e986f21f34d5c9b50a30ec5c7bd5bf9f29aafb21a76"),
+            hash: Some(h256!(
+                "0x564870fab22ae50ac2bf1e986f21f34d5c9b50a30ec5c7bd5bf9f29aafb21a76"
+            )),
+            script: None,
         }
     } else {
         DOBDecoderFormat {
             location: DecoderLocationType::CodeHash,
-            hash: h256!("0x32f29aba4b17f3d05bec8cec55d50ef86766fd0bf82fdedaa14269f344d3784a"),
+            hash: Some(h256!(
+                "0x32f29aba4b17f3d05bec8cec55d50ef86766fd0bf82fdedaa14269f344d3784a"
+            )),
+            script: None,
         }
     };
     let unicorn_metadata = ClusterDescriptionField {
@@ -52,12 +58,18 @@ fn generate_example_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
     let decoder = if onchain_decoder {
         DOBDecoderFormat {
             location: DecoderLocationType::TypeId,
-            hash: h256!("0x564870fab22ae50ac2bf1e986f21f34d5c9b50a30ec5c7bd5bf9f29aafb21a76"),
+            hash: Some(h256!(
+                "0x564870fab22ae50ac2bf1e986f21f34d5c9b50a30ec5c7bd5bf9f29aafb21a76"
+            )),
+            script: None,
         }
     } else {
         DOBDecoderFormat {
             location: DecoderLocationType::CodeHash,
-            hash: h256!("0x32f29aba4b17f3d05bec8cec55d50ef86766fd0bf82fdedaa14269f344d3784a"),
+            hash: Some(h256!(
+                "0x32f29aba4b17f3d05bec8cec55d50ef86766fd0bf82fdedaa14269f344d3784a"
+            )),
+            script: None,
         }
     };
     let example_metadata = ClusterDescriptionField {

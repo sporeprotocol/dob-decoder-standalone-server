@@ -1,3 +1,4 @@
 /target
 /cache/dobs/*.dob
 /cache/decoders/type_id_*
+/cache/decoders/type_script_*
