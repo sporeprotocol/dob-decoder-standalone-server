@@ -32,7 +32,7 @@ fn generate_dob1_ingredients() -> (Value, ClusterDescriptionField) {
                     decoder: DOBDecoderFormat {
                         location: DecoderLocationType::CodeHash,
                         hash: Some(h256!(
-                            "0x4d083add2a047dddfe0cca9b10e2deea036cf2808724ddb49f70fa3f8435886c"
+                            "0x0d55a92f83e9af0addd335a34c762c93b55c4f4cd4eb136eb2a4c4c0d71a3ffa"
                         )),
                         script: None
                     },
@@ -60,5 +60,5 @@ async fn test_dob1_basic_decode() {
     let decoder = DOBDecoder::new(settings);
     let dna = content.get("dna").unwrap().as_str().unwrap();
     let render_result = decoder.decode_dna(dna, dob_metadata).await.expect("decode");
-    println!("render_result: {}", render_result);
+    println!("\nrender_result: {}", render_result);
 }
