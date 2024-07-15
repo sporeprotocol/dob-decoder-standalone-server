@@ -117,16 +117,14 @@ impl DOBDecoder {
                 }
                 outputs.first().ok_or(Error::DecoderOutputInvalid)?.clone()
             };
-            let mut current_output = serde_json::from_str(&raw_render_result)
-                .map_err(|_| Error::DecoderOutputInvalid)?;
-            if let Some(output) = &mut output {
-                // currently, we just simplily append previous output, for truely combination design, this
-                // should add a deeper check for the name of items inside each output
-                output.append(&mut current_output);
-            } else {
-                output = Some(current_output);
-            }
+            output = Some(
+                serde_json::from_str(&raw_render_result)
+                    .map_err(|_| Error::DecoderOutputInvalid)?,
+            );
         }
+        let Some(output) = output else {
+            return Err(Error::DecoderChainIsEmpty);
+        };
         Ok(serde_json::to_string(&output).unwrap())
     }
 }

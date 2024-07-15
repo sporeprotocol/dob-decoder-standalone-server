@@ -26,13 +26,13 @@ fn generate_dob1_ingredients() -> (Value, ClusterDescriptionField) {
                         )),
                         script: None
                     },
-                    pattern: serde_json::from_str("[[\"Name\",\"string\",0,1,\"options\",[\"Alice\",\"Bob\",\"Charlie\",\"David\",\"Ethan\",\"Florence\",\"Grace\",\"Helen\"]],[\"Age\",\"number\",1,1,\"range\",[0,100]],[\"Score\",\"number\",2,1,\"raw\"],[\"DNA\",\"string\",3,3,\"raw\"],[\"URL\",\"string\",6,21,\"utf8\"],[\"Value\",\"number\",3,3,\"raw\"]]").unwrap(),
+                    pattern: serde_json::from_str("[[\"Name\",\"string\",0,1,\"options\",[\"Alice\",\"Bob\",\"Charlie\",\"David\",\"Ethan\",\"Florence\",\"Grace\",\"Helen\"]],[\"Age\",\"number\",1,1,\"range\",[0,100]],[\"Score\",\"number\",2,1,\"raw\"],[\"_DNA\",\"string\",3,3,\"raw\"],[\"_URL\",\"string\",6,21,\"utf8\"],[\"Value\",\"number\",3,3,\"raw\"]]").unwrap(),
                 },
                 DOBClusterFormatV0 {
                     decoder: DOBDecoderFormat {
                         location: DecoderLocationType::CodeHash,
                         hash: Some(h256!(
-                            "0x4d083add2a047dddfe0cca9b10e2deea036cf2808724ddb49f70fa3f8435886c"
+                            "0xda3525549b72970b4c95f5b5749357f20d1293d335710b674f09c32f7d54b6dc"
                         )),
                         script: None
                     },
@@ -60,5 +60,5 @@ async fn test_dob1_basic_decode() {
     let decoder = DOBDecoder::new(settings);
     let dna = content.get("dna").unwrap().as_str().unwrap();
     let render_result = decoder.decode_dna(dna, dob_metadata).await.expect("decode");
-    println!("render_result: {}", render_result);
+    println!("\nrender_result: {}", render_result);
 }

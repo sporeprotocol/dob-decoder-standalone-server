@@ -74,6 +74,8 @@ pub enum Error {
     DecoderHashNotFound,
     #[error("no decoder type_script fund in DOB metadata")]
     DecoderScriptNotFound,
+    #[error("decoder chain list cannot be empty")]
+    DecoderChainIsEmpty,
 }
 
 pub enum Dob<'a> {
@@ -254,12 +256,13 @@ pub struct Settings {
 }
 
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct StandardDOBOutput {
     pub name: String,
     pub traits: Vec<ParsedTrait>,
 }
 
+#[derive(Clone)]
 pub struct ParsedTrait {
     pub type_: String,
     pub value: Value,
