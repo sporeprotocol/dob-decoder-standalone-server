@@ -1,6 +1,7 @@
 # identifier of specific DOB protocol versions
 protocol_versions = [
-    "dob/0"
+    "dob/0",
+    "dob/1",
 ]
 
 # connect to the RPC of CKB node
