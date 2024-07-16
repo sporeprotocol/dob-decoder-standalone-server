@@ -49,3 +49,9 @@ out_index = 0
 code_hash = "0x13cac78ad8482202f18f9df4ea707611c35f994375fa03ae79121312dda9925c"
 tx_hash = "0x71023885a2178648be6a7f138ee49379000a82cda98dd8adabee99eaaca42fde"
 out_index = 0
+
+# DOB/1 commit:0bbbfd74966a7d3d4dcadc3d70979855b9e478de
+[[onchain_decoder_deployment]]
+code_hash = "0xda3525549b72970b4c95f5b5749357f20d1293d335710b674f09c32f7d54b6dc"
+tx_hash = "0x1b55845004b2d08956e08d9e10bb1bf23951e6056f8159588f2af03b11b08c07"
+out_index = 0
