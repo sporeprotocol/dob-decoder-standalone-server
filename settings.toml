@@ -1,6 +1,7 @@
 # identifier of specific DOB protocol versions
 protocol_versions = [
-    "dob/0"
+    "dob/0",
+    "dob/1",
 ]
 
 # connect to the RPC of CKB node
@@ -62,7 +63,14 @@ code_hash = "0x1c84212ebd817e9de09d2a79f85cc421b684eda63409cfa75688f98716e77b5f"
 tx_hash = "0xc877aca405da6a3038054cb5da20f2db0ed46bb643007d4e0b1d3fe7da155bf0"
 out_index = 0
 
+# DOB/0
 [[onchain_decoder_deployment]]
 code_hash = "0x13cac78ad8482202f18f9df4ea707611c35f994375fa03ae79121312dda9925c"
 tx_hash = "0x4a8a0d079f8438bed89e0ece1b14e67ab68e2aa7688a5f4917a59a185e0f8fd5"
+out_index = 0
+
+# DOB/1 commit:0bbbfd74966a7d3d4dcadc3d70979855b9e478de
+[[onchain_decoder_deployment]]
+code_hash = "0xda3525549b72970b4c95f5b5749357f20d1293d335710b674f09c32f7d54b6dc"
+tx_hash = "0x18c8f1d55906cf9932c5a72ae4dc039e51e41089db6829edb3f92078c6520bc8"
 out_index = 0
