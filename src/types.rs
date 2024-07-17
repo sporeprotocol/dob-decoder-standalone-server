@@ -126,7 +126,8 @@ impl ClusterDescriptionField {
 //
 // note: if `ver` is empty, `dob_ver_0` must uniquely exist
 #[derive(Deserialize)]
-#[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
+#[cfg_attr(feature = "standalone_server", derive(Serialize))]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct DOBClusterFormat {
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -152,7 +153,7 @@ pub struct DOBClusterFormatV1 {
     pub decoders: Vec<DOBClusterFormatV0>,
 }
 
-#[cfg(test)]
+#[cfg(feature = "standalone_server")]
 impl DOBClusterFormat {
     #[allow(dead_code)]
     pub fn new_dob0(dob_ver_0: DOBClusterFormatV0) -> Self {
