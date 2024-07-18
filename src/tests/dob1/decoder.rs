@@ -15,7 +15,7 @@ fn generate_dob1_ingredients() -> (Value, ClusterDescriptionField) {
         "dna": "ac7b88aabbcc687474703a2f2f3132372e302e302e313a383039300000"
     });
     let metadata = ClusterDescriptionField {
-        description: "DOB/1 Test".to_string(),
+        description: "DOB/1 SVG Test".to_string(),
         dob: DOBClusterFormat::new_dob1(DOBClusterFormatV1 {
             decoders: vec![
                 DOBClusterFormatV0 {
@@ -41,7 +41,7 @@ fn generate_dob1_ingredients() -> (Value, ClusterDescriptionField) {
                         ),
                         hash: None,
                     },
-                    pattern: serde_json::from_str("[[\"IMAGE.0\",\"attributes\",\"\",\"raw\",\"width='200' height='200' xmlns='http://www.w3.org/2000/svg'\"],[\"IMAGE.0\",\"attributes\",\"Name\",\"options\",[[\"Alice\",\"fill='#0000FF'\"],[\"Bob\",\"fill='#00FF00'\"],[\"Ethan\",\"fill='#FF0000'\"],[[\"*\"],\"fill='#FFFFFF'\"]]],[\"IMAGE.0\",\"elements\",\"Age\",\"range\",[[[0,50],\"<image href='btcfs://b2f4560f17679d3e3fca66209ac425c660d28a252ef72444c3325c6eb0364393i0' />\"],[[51,100],\"<image href='btcfs://eb3910b3e32a5ed9460bd0d75168c01ba1b8f00cc0faf83e4d8b67b48ea79676i0' />\"],[[\"*\"],\"<image href='btcfs://11b6303eb7d887d7ade459ac27959754cd55f9f9e50345ced8e1e8f47f4581fai0' />\"]]]]").unwrap(),
+                    pattern: serde_json::from_str("[[\"IMAGE.0\",\"attributes\",\"\",\"raw\",\"width='200' height='200' xmlns='http://www.w3.org/2000/svg'\"],[\"IMAGE.0\",\"elements\",\"Name\",\"options\",[[\"Alice\",\"<rect fill='#0000FF' width='200' height='200' />\"],[\"Bob\",\"<rect fill='#00FF00' width='200' height='200' />\"],[\"Ethan\",\"<rect fill='#FF0000' width='200' height='200' />\"],[[\"*\"],\"<rect fill='#FFFFFF' width='200' height='200' />\"]]],[\"IMAGE.0\",\"elements\",\"Age\",\"range\",[[[0,50],\"<image width='200' height='200' href='btcfs://b2f4560f17679d3e3fca66209ac425c660d28a252ef72444c3325c6eb0364393i0' />\"],[[51,100],\"<image width='200' height='200' href='btcfs://eb3910b3e32a5ed9460bd0d75168c01ba1b8f00cc0faf83e4d8b67b48ea79676i0' />\"],[[\"*\"],\"<image width='200' height='200' href='btcfs://11b6303eb7d887d7ade459ac27959754cd55f9f9e50345ced8e1e8f47f4581fai0' />\"]]],[\"IMAGE.1\",\"attributes\",\"\",\"raw\",\"xmlns='http://www.w3.org/2000/svg'\"],[\"IMAGE.1\",\"elements\",\"Score\",\"range\",[[[0,1000],\"<image width='200' height='200' href='ipfs://QmeQ6TfqzsjJCMtYmpbyZeMxiSzQGc6Aqg6NyJTeLYrrJr' />\"],[[\"*\"],\"<image width='200' height='200' href='ipfs://QmWjv41cCvGn6sf1zh8pAokX1Nf5oShz8EtLaxxKQLyJfW' />\"]]]]").unwrap(),
                 }
             ],
         }),

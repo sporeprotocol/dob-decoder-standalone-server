@@ -84,7 +84,7 @@ impl DOBDecoder {
     // decode specificly for objects under DOB/1 protocol
     async fn decode_dob1_dna(&self, dna: &str, dob1: &DOBClusterFormatV1) -> Result<String, Error> {
         let mut output = Option::<Vec<StandardDOBOutput>>::None;
-        for value in &dob1.decoders {
+        for (i, value) in dob1.decoders.iter().enumerate() {
             let decoder_path =
                 parse_decoder_path(&self.rpc, &value.decoder, &self.settings).await?;
             let pattern = match &value.pattern {
@@ -108,7 +108,7 @@ impl DOBDecoder {
                         .map_err(|_| Error::DecoderExecutionError)?;
                 #[cfg(feature = "render_debug")]
                 {
-                    println!("\n-------- DOB/1 DECODE RESULT ({exit_code}) ---------");
+                    println!("\n-------- DOB/1 DECODE RESULT ({i} => {exit_code}) ---------");
                     outputs.iter().for_each(|output| println!("{output}"));
                     println!("-------- DOB/1 DECODE RESULT END ---------");
                 }
