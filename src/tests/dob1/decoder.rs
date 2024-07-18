@@ -15,28 +15,33 @@ fn generate_dob1_ingredients() -> (Value, ClusterDescriptionField) {
         "dna": "ac7b88aabbcc687474703a2f2f3132372e302e302e313a383039300000"
     });
     let metadata = ClusterDescriptionField {
-        description: "DOB/1 Test".to_string(),
+        description: "DOB/1 SVG Test".to_string(),
         dob: DOBClusterFormat::new_dob1(DOBClusterFormatV1 {
             decoders: vec![
                 DOBClusterFormatV0 {
                     decoder: DOBDecoderFormat {
                         location: DecoderLocationType::CodeHash,
                         hash: Some(h256!(
-                            "0x32f29aba4b17f3d05bec8cec55d50ef86766fd0bf82fdedaa14269f344d3784a"
+                            "0x13cac78ad8482202f18f9df4ea707611c35f994375fa03ae79121312dda9925c"
                         )),
                         script: None
                     },
-                    pattern: serde_json::from_str("[[\"Name\",\"string\",0,1,\"options\",[\"Alice\",\"Bob\",\"Charlie\",\"David\",\"Ethan\",\"Florence\",\"Grace\",\"Helen\"]],[\"Age\",\"number\",1,1,\"range\",[0,100]],[\"Score\",\"number\",2,1,\"raw\"],[\"_DNA\",\"string\",3,3,\"raw\"],[\"_URL\",\"string\",6,21,\"utf8\"],[\"Value\",\"number\",3,3,\"raw\"]]").unwrap(),
+                    pattern: serde_json::from_str("[[\"Name\",\"String\",0,1,\"options\",[\"Alice\",\"Bob\",\"Charlie\",\"David\",\"Ethan\",\"Florence\",\"Grace\",\"Helen\"]],[\"Age\",\"Number\",1,1,\"range\",[0,100]],[\"Score\",\"Number\",2,1,\"rawNumber\"],[\"_DNA\",\"String\",3,3,\"rawString\"],[\"_URL\",\"string\",6,21,\"utf8\"],[\"Value\",\"Number\",3,3,\"rawNumber\"]]").unwrap(),
                 },
                 DOBClusterFormatV0 {
                     decoder: DOBDecoderFormat {
-                        location: DecoderLocationType::CodeHash,
-                        hash: Some(h256!(
-                            "0xda3525549b72970b4c95f5b5749357f20d1293d335710b674f09c32f7d54b6dc"
-                        )),
-                        script: None
+                        location: DecoderLocationType::TypeScript,
+                        script: Some(serde_json::from_str(r#"
+                        {
+                            "code_hash": "0x00000000000000000000000000000000000000000000000000545950455f4944",
+                            "hash_type": "type",
+                            "args": "0x784e32cef202b9d4759ea96e80d806f94051e8069fd34d761f452553700138d7"
+                        }
+                        "#).unwrap()
+                        ),
+                        hash: None,
                     },
-                    pattern: serde_json::from_str("[[\"IMAGE.0\",\"attributes\",\"\",\"raw\",\"width='200' height='200' xmlns='http://www.w3.org/2000/svg'\"],[\"IMAGE.0\",\"attributes\",\"Name\",\"options\",[[\"Alice\",\"fill='#0000FF'\"],[\"Bob\",\"fill='#00FF00'\"],[\"Ethan\",\"fill='#FF0000'\"],[[\"*\"],\"fill='#FFFFFF'\"]]],[\"IMAGE.0\",\"elements\",\"Age\",\"range\",[[[0,50],\"<image href='btcfs://b2f4560f17679d3e3fca66209ac425c660d28a252ef72444c3325c6eb0364393i0' />\"],[[51,100],\"<image href='btcfs://eb3910b3e32a5ed9460bd0d75168c01ba1b8f00cc0faf83e4d8b67b48ea79676i0' />\"],[[\"*\"],\"<image href='btcfs://11b6303eb7d887d7ade459ac27959754cd55f9f9e50345ced8e1e8f47f4581fai0' />\"]]]]").unwrap(),
+                    pattern: serde_json::from_str("[[\"IMAGE.0\",\"attributes\",\"\",\"raw\",\"width='200' height='200' xmlns='http://www.w3.org/2000/svg'\"],[\"IMAGE.0\",\"elements\",\"Name\",\"options\",[[\"Alice\",\"<rect fill='#0000FF' width='200' height='200' />\"],[\"Bob\",\"<rect fill='#00FF00' width='200' height='200' />\"],[\"Ethan\",\"<rect fill='#FF0000' width='200' height='200' />\"],[[\"*\"],\"<rect fill='#FFFFFF' width='200' height='200' />\"]]],[\"IMAGE.0\",\"elements\",\"Age\",\"range\",[[[0,50],\"<image width='200' height='200' href='btcfs://b2f4560f17679d3e3fca66209ac425c660d28a252ef72444c3325c6eb0364393i0' />\"],[[51,100],\"<image width='200' height='200' href='btcfs://eb3910b3e32a5ed9460bd0d75168c01ba1b8f00cc0faf83e4d8b67b48ea79676i0' />\"],[[\"*\"],\"<image width='200' height='200' href='btcfs://11b6303eb7d887d7ade459ac27959754cd55f9f9e50345ced8e1e8f47f4581fai0' />\"]]],[\"IMAGE.1\",\"attributes\",\"\",\"raw\",\"xmlns='http://www.w3.org/2000/svg'\"],[\"IMAGE.1\",\"elements\",\"Score\",\"range\",[[[0,1000],\"<image width='200' height='200' href='ipfs://QmeQ6TfqzsjJCMtYmpbyZeMxiSzQGc6Aqg6NyJTeLYrrJr' />\"],[[\"*\"],\"<image width='200' height='200' href='ipfs://QmWjv41cCvGn6sf1zh8pAokX1Nf5oShz8EtLaxxKQLyJfW' />\"]]]]").unwrap(),
                 }
             ],
         }),

@@ -104,10 +104,11 @@ pub async fn fetch_dob_content(
             .map_err(|_| Error::SporeDataUncompatible)?;
     let content_type = String::from_utf8(molecule_spore_data.content_type().raw_data().to_vec())
         .map_err(|_| Error::SporeDataContentTypeUncompatible)?;
-    if !settings
-        .protocol_versions
-        .iter()
-        .any(|version| content_type.starts_with(version))
+    if !content_type.is_empty()
+        && !settings
+            .protocol_versions
+            .iter()
+            .any(|version| content_type.starts_with(version))
     {
         return Err(Error::DOBVersionUnexpected);
     }
