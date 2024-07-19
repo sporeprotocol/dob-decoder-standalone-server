@@ -28,6 +28,10 @@ dobs_cache_expiration_sec = 300
 code_hash = "0x4a4dce1df3dffff7f8b2cd7dff7303df3b6150c9788cb75dcf6747247132b9f5"
 hash_type = "data1"
 
+[[available_spores]]
+code_hash = "0xcfba73b58b6f30e70caed8a999748781b164ef9a1e218424a6fb55ebf641cb33"
+hash_type = "type"
+
 # all deployed on-chain Cluster contracts binary hash (order from new to old)
 # refer to: https://github.com/sporeprotocol/spore-contract/blob/master/docs/VERSIONS.md
 [[available_clusters]]
