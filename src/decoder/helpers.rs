@@ -4,7 +4,7 @@ use ckb_sdk::{constants::TYPE_ID_CODE_HASH, traits::CellQueryOptions};
 use ckb_types::{
     core::ScriptHashType,
     packed::{OutPoint, Script},
-    prelude::{Builder, Entity, Pack},
+    prelude::{Builder, Entity, Pack, Unpack},
     H256,
 };
 use serde_json::Value;
@@ -82,7 +82,7 @@ pub async fn fetch_dob_content(
     rpc: &RpcClient,
     settings: &Settings,
     spore_id: [u8; 32],
-) -> Result<((Value, String), [u8; 32]), Error> {
+) -> Result<((Value, String), [u8; 32], H256), Error> {
     let mut spore_cell = None;
     for spore_search_option in build_batch_search_options(spore_id, &settings.available_spores) {
         spore_cell = rpc
@@ -99,14 +99,25 @@ pub async fn fetch_dob_content(
     let Some(spore_cell) = spore_cell else {
         return Err(Error::SporeIdNotFound);
     };
+    extract_dob_information(
+        spore_cell.output_data.unwrap_or_default().as_bytes(),
+        spore_cell.output.type_.unwrap().into(),
+        &settings.protocol_versions,
+    )
+}
+
+#[allow(clippy::type_complexity)]
+pub fn extract_dob_information(
+    output_data: &[u8],
+    spore_type: Script,
+    protocol_versions: &[String],
+) -> Result<((Value, String), [u8; 32], H256), Error> {
     let molecule_spore_data =
-        SporeData::from_compatible_slice(spore_cell.output_data.unwrap_or_default().as_bytes())
-            .map_err(|_| Error::SporeDataUncompatible)?;
+        SporeData::from_compatible_slice(output_data).map_err(|_| Error::SporeDataUncompatible)?;
     let content_type = String::from_utf8(molecule_spore_data.content_type().raw_data().to_vec())
         .map_err(|_| Error::SporeDataContentTypeUncompatible)?;
     if !content_type.is_empty()
-        && !settings
-            .protocol_versions
+        && !protocol_versions
             .iter()
             .any(|version| content_type.starts_with(version))
     {
@@ -118,7 +129,12 @@ pub async fn fetch_dob_content(
         .ok_or(Error::ClusterIdNotSet)?
         .raw_data();
     let dob_content = decode_spore_data(&molecule_spore_data.content().raw_data())?;
-    Ok((dob_content, cluster_id.to_vec().try_into().unwrap()))
+    let spore_type_hash = spore_type.calc_script_hash().unpack();
+    Ok((
+        dob_content,
+        cluster_id.to_vec().try_into().unwrap(),
+        spore_type_hash,
+    ))
 }
 
 // search on-chain cluster cell and return its description field, which contains dob metadata

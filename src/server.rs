@@ -47,8 +47,12 @@ impl DecoderStandaloneServer {
         spore_id: [u8; 32],
         cache_path: PathBuf,
     ) -> Result<(String, Value), Error> {
-        let ((content, dna), metadata) = self.decoder.fetch_decode_ingredients(spore_id).await?;
-        let render_output = self.decoder.decode_dna(&dna, metadata).await?;
+        let ((content, dna), metadata, spore_type_hash) =
+            self.decoder.fetch_decode_ingredients(spore_id).await?;
+        let render_output = self
+            .decoder
+            .decode_dna(&dna, metadata, spore_type_hash)
+            .await?;
         write_dob_to_cache(&render_output, &content, cache_path, self.cache_expiration)?;
         Ok((render_output, content))
     }

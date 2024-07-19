@@ -64,6 +64,9 @@ async fn test_dob1_basic_decode() {
     let (content, dob_metadata) = generate_dob1_ingredients();
     let decoder = DOBDecoder::new(settings);
     let dna = content.get("dna").unwrap().as_str().unwrap();
-    let render_result = decoder.decode_dna(dna, dob_metadata).await.expect("decode");
+    let render_result = decoder
+        .decode_dna(dna, dob_metadata, Default::default())
+        .await
+        .expect("decode");
     println!("\nrender_result: {}", render_result);
 }

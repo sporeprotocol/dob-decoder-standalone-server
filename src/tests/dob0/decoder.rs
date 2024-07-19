@@ -86,12 +86,12 @@ fn generate_example_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
 async fn test_fetch_and_decode_unicorn_dna() {
     let settings = prepare_settings("text/plain");
     let decoder = DOBDecoder::new(settings);
-    let ((_, dna), dob_metadata) = decoder
+    let ((_, dna), dob_metadata, type_hash) = decoder
         .fetch_decode_ingredients(UNICORN_SPORE_ID.into())
         .await
         .expect("fetch");
     let render_result = decoder
-        .decode_dna(&dna, dob_metadata)
+        .decode_dna(&dna, dob_metadata, type_hash)
         // array type
         .await
         .expect("decode");
@@ -117,12 +117,12 @@ fn test_unicorn_json_serde() {
 async fn test_fetch_and_decode_example_dna() {
     let settings = prepare_settings("text/plain");
     let decoder = DOBDecoder::new(settings);
-    let ((_, dna), dob_metadata) = decoder
+    let ((_, dna), dob_metadata, type_hash) = decoder
         .fetch_decode_ingredients(EXAMPLE_SPORE_ID.into())
         .await
         .expect("fetch");
     let render_result = decoder
-        .decode_dna(&dna, dob_metadata)
+        .decode_dna(&dna, dob_metadata, type_hash)
         // array type
         .await
         .expect("decode");

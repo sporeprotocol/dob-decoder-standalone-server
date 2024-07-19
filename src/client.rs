@@ -66,9 +66,10 @@ pub struct RpcClient {
 }
 
 impl RpcClient {
-    pub fn new(ckb_uri: &str, indexer_uri: &str) -> Self {
+    pub fn new(ckb_uri: &str, indexer_uri: Option<&str>) -> Self {
+        let indexer_uri = Url::parse(indexer_uri.unwrap_or(ckb_uri))
+            .expect("ckb uri, e.g. \"http://127.0.0.1:8116\"");
         let ckb_uri = Url::parse(ckb_uri).expect("ckb uri, e.g. \"http://127.0.0.1:8114\"");
-        let indexer_uri = Url::parse(indexer_uri).expect("ckb uri, e.g. \"http://127.0.0.1:8116\"");
 
         RpcClient {
             raw: Client::new(),
