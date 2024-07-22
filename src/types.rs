@@ -76,7 +76,7 @@ pub enum Error {
     DecoderScriptNotFound,
     #[error("decoder chain list cannot be empty")]
     DecoderChainIsEmpty,
-    #[error("DOB ring broken with disconnected outpoint pointer")]
+    #[error("DOB ring broken with disconnected cell output")]
     CellOutputNotFound,
     #[error("invalid DOB spore cell")]
     InvalidDOBCell,

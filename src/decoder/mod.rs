@@ -71,6 +71,7 @@ impl<T: RPC> DOBDecoder<T> {
                 &decoder_path.to_string_lossy(),
                 vec![dna.to_owned().into(), pattern.into()],
                 spore_type_hash,
+                self.rpc.clone(),
                 &self.settings,
             )
             .map_err(|_| Error::DecoderExecutionError)?;
@@ -119,6 +120,7 @@ impl<T: RPC> DOBDecoder<T> {
                     &decoder_path.to_string_lossy(),
                     args,
                     spore_type_hash.clone(),
+                    self.rpc.clone(),
                     &self.settings,
                 )
                 .map_err(|_| Error::DecoderExecutionError)?;

@@ -11,7 +11,7 @@ use ckb_vm::cost_model::estimate_cycles;
 use ckb_vm::registers::{A0, A1, A2, A3, A7};
 use ckb_vm::{Bytes, CoreMachine, Memory, Register, SupportMachine, Syscalls};
 
-use crate::client::{RpcClient, RPC};
+use crate::client::RPC;
 use crate::decoder::helpers::extract_dob_information;
 use crate::types::{Error, Settings};
 
@@ -144,6 +144,7 @@ impl<T: RPC> DobRingMatchSyscall<T> {
             }
         });
         self.cluster_dnas = rx.recv().expect("recv")?;
+        println!("cluster_dnas = {:?}", self.cluster_dnas);
         Ok(())
     }
 
@@ -155,7 +156,9 @@ impl<T: RPC> DobRingMatchSyscall<T> {
         buffer_size: u64,
         cluster_type_hash: &[u8; 32],
     ) -> Result<bool, ckb_vm::error::Error> {
+        println!("handle");
         if let Some(dnas) = self.cluster_dnas.get(cluster_type_hash) {
+            println!("dnas.len = {}", dnas.len());
             let dna_stream = dnas.join("|");
             machine.memory_mut().store64(
                 buffer_size_addr,
@@ -239,10 +242,11 @@ impl<Mac: SupportMachine, T: RPC> Syscalls<Mac> for DobRingMatchSyscall<T> {
     }
 }
 
-fn main_asm(
+fn main_asm<T: RPC + 'static>(
     code: Bytes,
     args: Vec<Bytes>,
     type_hash: H256,
+    rpc: T,
     settings: &Settings,
 ) -> Result<(i8, Vec<String>), Box<dyn std::error::Error>> {
     let debug_result = Arc::new(Mutex::new(Vec::new()));
@@ -250,7 +254,7 @@ fn main_asm(
         output: debug_result.clone(),
     });
     let dob_ring_match = Box::new(DobRingMatchSyscall {
-        ckb_rpc: RpcClient::new(&settings.ckb_rpc, None),
+        ckb_rpc: rpc,
         ring_tail_confirmation_type_hash: type_hash.into(),
         cluster_dnas: HashMap::new(),
         protocol_versions: settings.protocol_versions.clone(),
@@ -274,12 +278,13 @@ fn main_asm(
     Ok((error_code, result))
 }
 
-pub fn execute_riscv_binary(
+pub fn execute_riscv_binary<T: RPC + 'static>(
     binary_path: &str,
     args: Vec<Bytes>,
     spore_type_hash: H256,
+    rpc: T,
     settings: &Settings,
 ) -> Result<(i8, Vec<String>), Box<dyn std::error::Error>> {
     let code = std::fs::read(binary_path)?.into();
-    main_asm(code, args, spore_type_hash, settings)
+    main_asm(code, args, spore_type_hash, rpc, settings)
 }
