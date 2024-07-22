@@ -11,7 +11,7 @@ use serde_json::Value;
 use spore_types::{generated::spore::ClusterData, SporeData};
 
 use crate::{
-    client::RpcClient,
+    client::RPC,
     types::{
         ClusterDescriptionField, DOBDecoderFormat, DecoderLocationType, Error, ScriptId, Settings,
     },
@@ -78,8 +78,8 @@ pub fn decode_spore_data(spore_data: &[u8]) -> Result<(Value, String), Error> {
 }
 
 // search on-chain spore cell and return its content field, which represents dob content
-pub async fn fetch_dob_content(
-    rpc: &RpcClient,
+pub async fn fetch_dob_content<T: RPC>(
+    rpc: &T,
     settings: &Settings,
     spore_id: [u8; 32],
 ) -> Result<((Value, String), [u8; 32], H256), Error> {
@@ -138,8 +138,8 @@ pub fn extract_dob_information(
 }
 
 // search on-chain cluster cell and return its description field, which contains dob metadata
-pub async fn fetch_dob_metadata(
-    rpc: &RpcClient,
+pub async fn fetch_dob_metadata<T: RPC>(
+    rpc: &T,
     settings: &Settings,
     cluster_id: [u8; 32],
 ) -> Result<ClusterDescriptionField, Error> {
@@ -170,8 +170,8 @@ pub async fn fetch_dob_metadata(
 }
 
 // search on-chain decoder cell, deployed with type_id feature enabled
-async fn fetch_decoder_binary(
-    rpc: &RpcClient,
+async fn fetch_decoder_binary<T: RPC>(
+    rpc: &T,
     decoder_search_option: CellQueryOptions,
 ) -> Result<Vec<u8>, Error> {
     let decoder_cell = rpc
@@ -190,8 +190,8 @@ async fn fetch_decoder_binary(
 }
 
 // search on-chain decoder cell, directly by its tx_hash and out_index
-async fn fetch_decoder_binary_directly(
-    rpc: &RpcClient,
+async fn fetch_decoder_binary_directly<T: RPC>(
+    rpc: &T,
     tx_hash: H256,
     out_index: u32,
 ) -> Result<Vec<u8>, Error> {
@@ -208,8 +208,8 @@ async fn fetch_decoder_binary_directly(
     Ok(decoder_binary.as_bytes().to_vec())
 }
 
-pub async fn parse_decoder_path(
-    rpc: &RpcClient,
+pub async fn parse_decoder_path<T: RPC>(
+    rpc: &T,
     decoder: &DOBDecoderFormat,
     settings: &Settings,
 ) -> Result<PathBuf, Error> {

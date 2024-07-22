@@ -11,7 +11,7 @@ use ckb_vm::cost_model::estimate_cycles;
 use ckb_vm::registers::{A0, A1, A2, A3, A7};
 use ckb_vm::{Bytes, CoreMachine, Memory, Register, SupportMachine, Syscalls};
 
-use crate::client::RpcClient;
+use crate::client::{RpcClient, RPC};
 use crate::decoder::helpers::extract_dob_information;
 use crate::types::{Error, Settings};
 
@@ -71,14 +71,14 @@ impl<Mac: SupportMachine> Syscalls<Mac> for DebugSyscall {
     }
 }
 
-struct DobRingMatchSyscall {
-    ckb_rpc: RpcClient,
+struct DobRingMatchSyscall<T: RPC + 'static> {
+    ckb_rpc: T,
     ring_tail_confirmation_type_hash: [u8; 32],
     cluster_dnas: HashMap<[u8; 32], Vec<String>>,
     protocol_versions: Vec<String>,
 }
 
-impl DobRingMatchSyscall {
+impl<T: RPC> DobRingMatchSyscall<T> {
     fn update_dob_ring_cluster_dnas(&mut self, mut out_point: OutPoint) -> Result<(), Error> {
         let (tx, rx) = mpsc::channel();
         let ckb_rpc = self.ckb_rpc.clone();
@@ -180,7 +180,7 @@ impl DobRingMatchSyscall {
     }
 }
 
-impl<Mac: SupportMachine> Syscalls<Mac> for DobRingMatchSyscall {
+impl<Mac: SupportMachine, T: RPC> Syscalls<Mac> for DobRingMatchSyscall<T> {
     fn initialize(&mut self, _machine: &mut Mac) -> Result<(), ckb_vm::error::Error> {
         Ok(())
     }

@@ -7,6 +7,7 @@ use jsonrpsee::{proc_macros::rpc, tracing, types::ErrorCode};
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::client::RPC;
 use crate::decoder::DOBDecoder;
 use crate::types::Error;
 
@@ -29,13 +30,13 @@ trait DecoderRpc {
     async fn batch_decode(&self, hexed_spore_ids: Vec<String>) -> Result<Vec<String>, ErrorCode>;
 }
 
-pub struct DecoderStandaloneServer {
-    decoder: DOBDecoder,
+pub struct DecoderStandaloneServer<T: RPC + 'static> {
+    decoder: DOBDecoder<T>,
     cache_expiration: u64,
 }
 
-impl DecoderStandaloneServer {
-    pub fn new(decoder: DOBDecoder, cache_expiration: u64) -> Self {
+impl<T: RPC> DecoderStandaloneServer<T> {
+    pub fn new(decoder: DOBDecoder<T>, cache_expiration: u64) -> Self {
         Self {
             decoder,
             cache_expiration,
@@ -59,7 +60,7 @@ impl DecoderStandaloneServer {
 }
 
 #[async_trait]
-impl DecoderRpcServer for DecoderStandaloneServer {
+impl<T: RPC> DecoderRpcServer for DecoderStandaloneServer<T> {
     async fn protocol_versions(&self) -> Vec<String> {
         self.decoder.protocol_versions()
     }

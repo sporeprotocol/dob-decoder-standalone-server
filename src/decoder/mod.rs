@@ -2,7 +2,7 @@ use ckb_types::H256;
 use serde_json::Value;
 
 use crate::{
-    client::RpcClient,
+    client::RPC,
     types::{
         ClusterDescriptionField, DOBClusterFormatV0, DOBClusterFormatV1, Dob, Error, Settings,
         StandardDOBOutput,
@@ -12,17 +12,14 @@ use crate::{
 pub(crate) mod helpers;
 use helpers::*;
 
-pub struct DOBDecoder {
-    rpc: RpcClient,
+pub struct DOBDecoder<T: RPC + 'static> {
+    rpc: T,
     settings: Settings,
 }
 
-impl DOBDecoder {
-    pub fn new(settings: Settings) -> Self {
-        Self {
-            rpc: RpcClient::new(&settings.ckb_rpc, None),
-            settings,
-        }
+impl<T: RPC> DOBDecoder<T> {
+    pub fn new(rpc: T, settings: Settings) -> Self {
+        Self { rpc, settings }
     }
 
     pub fn protocol_versions(&self) -> Vec<String> {

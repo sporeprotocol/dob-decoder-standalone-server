@@ -2,6 +2,7 @@ use ckb_types::h256;
 use serde_json::{json, Value};
 
 use crate::{
+    client::RpcClient,
     decoder::DOBDecoder,
     tests::prepare_settings,
     types::{
@@ -62,7 +63,8 @@ fn test_print_dob1_ingreidents() {
 async fn test_dob1_basic_decode() {
     let settings = prepare_settings("dob/1");
     let (content, dob_metadata) = generate_dob1_ingredients();
-    let decoder = DOBDecoder::new(settings);
+    let rpc = RpcClient::new(&settings.ckb_rpc, None);
+    let decoder = DOBDecoder::new(rpc, settings);
     let dna = content.get("dna").unwrap().as_str().unwrap();
     let render_result = decoder
         .decode_dna(dna, dob_metadata, Default::default())
