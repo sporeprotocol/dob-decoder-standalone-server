@@ -59,5 +59,5 @@ out_index = 0
 # DOB/1 commit:0bbbfd74966a7d3d4dcadc3d70979855b9e478de
 [[onchain_decoder_deployment]]
 code_hash = "0xda3525549b72970b4c95f5b5749357f20d1293d335710b674f09c32f7d54b6dc"
-tx_hash = "0x1b55845004b2d08956e08d9e10bb1bf23951e6056f8159588f2af03b11b08c07"
+tx_hash = "0x99cc81b5e4c311519173f3f6f771dff64a2f64c97f5f724877c4352cd1b3b32c"
 out_index = 0
