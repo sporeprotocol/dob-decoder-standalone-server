@@ -57,6 +57,17 @@ macro_rules! jsonrpc {
     }}
 }
 
+#[allow(clippy::upper_case_acronyms)]
+pub trait RPC: Clone + Send + Sync {
+    fn get_live_cell(&self, out_point: &OutPoint, with_data: bool) -> Rpc<CellWithStatus>;
+    fn get_cells(
+        &self,
+        search_key: SearchKey,
+        limit: u32,
+        cursor: Option<JsonBytes>,
+    ) -> Rpc<Pagination<Cell>>;
+}
+
 #[derive(Clone)]
 pub struct RpcClient {
     raw: Client,
@@ -66,9 +77,10 @@ pub struct RpcClient {
 }
 
 impl RpcClient {
-    pub fn new(ckb_uri: &str, indexer_uri: &str) -> Self {
+    pub fn new(ckb_uri: &str, indexer_uri: Option<&str>) -> Self {
+        let indexer_uri = Url::parse(indexer_uri.unwrap_or(ckb_uri))
+            .expect("ckb uri, e.g. \"http://127.0.0.1:8116\"");
         let ckb_uri = Url::parse(ckb_uri).expect("ckb uri, e.g. \"http://127.0.0.1:8114\"");
-        let indexer_uri = Url::parse(indexer_uri).expect("ckb uri, e.g. \"http://127.0.0.1:8116\"");
 
         RpcClient {
             raw: Client::new(),
@@ -79,8 +91,8 @@ impl RpcClient {
     }
 }
 
-impl RpcClient {
-    pub fn get_live_cell(&self, out_point: &OutPoint, with_data: bool) -> Rpc<CellWithStatus> {
+impl RPC for RpcClient {
+    fn get_live_cell(&self, out_point: &OutPoint, with_data: bool) -> Rpc<CellWithStatus> {
         jsonrpc!(
             "get_live_cell",
             Target::CKB,
@@ -92,7 +104,7 @@ impl RpcClient {
         .boxed()
     }
 
-    pub fn get_cells(
+    fn get_cells(
         &self,
         search_key: SearchKey,
         limit: u32,

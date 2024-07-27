@@ -1,5 +1,6 @@
 use ckb_types::{h256, H256};
 
+use crate::client::RpcClient;
 use crate::decoder::{helpers::decode_spore_data, DOBDecoder};
 use crate::tests::prepare_settings;
 use crate::types::{
@@ -80,10 +81,12 @@ fn generate_unicorn_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
 
 async fn decode_unicorn_dna(onchain_decoder: bool) -> String {
     let settings = prepare_settings("text/plain");
-    let decoder = DOBDecoder::new(settings);
+    let rpc = RpcClient::new(&settings.ckb_rpc, None);
+    let decoder = DOBDecoder::new(rpc, settings);
     let (unicorn_content, unicorn_metadata) = generate_unicorn_dob_ingredients(onchain_decoder);
+    let dna = unicorn_content["dna"].as_str().unwrap();
     decoder
-        .decode_dna(&unicorn_content["dna"].as_str().unwrap(), unicorn_metadata)
+        .decode_dna(dna, unicorn_metadata, Default::default())
         .await
         .expect("decode")
 }
@@ -100,13 +103,14 @@ async fn test_decode_unicorn_dna() {
 #[tokio::test]
 async fn test_fetch_and_decode_nervape_dna() {
     let settings = prepare_settings("text/plain");
-    let decoder = DOBDecoder::new(settings);
-    let ((_, dna), dob_metadata) = decoder
+    let rpc = RpcClient::new(&settings.ckb_rpc, None);
+    let decoder = DOBDecoder::new(rpc, settings);
+    let ((_, dna), dob_metadata, type_hash) = decoder
         .fetch_decode_ingredients(NERVAPE_SPORE_ID.into())
         .await
         .expect("fetch");
     let render_result = decoder
-        .decode_dna(&dna, dob_metadata)
+        .decode_dna(&dna, dob_metadata, type_hash)
         // array type
         .await
         .expect("decode");
@@ -117,7 +121,8 @@ async fn test_fetch_and_decode_nervape_dna() {
 #[should_panic = "fetch: DOBVersionUnexpected"]
 async fn test_fetch_onchain_dob_failed() {
     let settings = prepare_settings("dob/0");
-    DOBDecoder::new(settings)
+    let rpc = RpcClient::new(&settings.ckb_rpc, None);
+    DOBDecoder::new(rpc, settings)
         .fetch_decode_ingredients(NERVAPE_SPORE_ID.into())
         .await
         .expect("fetch");

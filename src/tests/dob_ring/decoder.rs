@@ -1,34 +1,33 @@
-use ckb_types::h256;
+use ckb_types::{h256, packed::OutPoint, prelude::Entity};
 use serde_json::{json, Value};
 
 use crate::{
-    client::RpcClient,
     decoder::DOBDecoder,
-    tests::prepare_settings,
+    tests::{prepare_settings, dob_ring::client::MockRpcClient},
     types::{
         ClusterDescriptionField, DOBClusterFormat, DOBClusterFormatV0, DOBClusterFormatV1,
         DOBDecoderFormat, DecoderLocationType,
     },
 };
 
-fn generate_dob1_ingredients() -> (Value, ClusterDescriptionField) {
+fn generate_dob_ring_ingredients() -> (Value, ClusterDescriptionField) {
     let content = json!({
-        "dna": "ac7b88aabbcc687474703a2f2f3132372e302e302e313a383039300000"
+        "dna": hex::encode(OutPoint::new(Default::default(), 0).as_bytes())
     });
     let metadata = ClusterDescriptionField {
-        description: "DOB/1 SVG Test".to_string(),
+        description: "Ring DOB Test".to_string(),
         dob: DOBClusterFormat::new_dob1(DOBClusterFormatV1 {
             decoders: vec![
                 DOBClusterFormatV0 {
                     decoder: DOBDecoderFormat {
                         location: DecoderLocationType::CodeHash,
                         hash: Some(h256!(
-                            "0x13cac78ad8482202f18f9df4ea707611c35f994375fa03ae79121312dda9925c"
+                            "0x198c5ccb3fbd3309f110b8bdbc3df086bc9fb3867716f4e203005c501b172f00"
                         )),
                         script: None
                     },
-                    pattern: serde_json::from_str("[[\"Name\",\"String\",0,1,\"options\",[\"Alice\",\"Bob\",\"Charlie\",\"David\",\"Ethan\",\"Florence\",\"Grace\",\"Helen\"]],[\"Age\",\"Number\",1,1,\"range\",[0,100]],[\"Score\",\"Number\",2,1,\"rawNumber\"],[\"_DNA\",\"String\",3,3,\"rawString\"],[\"_URL\",\"string\",6,21,\"utf8\"],[\"Value\",\"Number\",3,3,\"rawNumber\"]]").unwrap(),
-                },
+                    pattern: serde_json::from_str("[[\"Name\",\"String\",\"0000000000000000000000000000000000000000000000000000000000000000\",0,1,\"options\",[\"Alice\",\"Bob\",\"Charlie\",\"David\",\"Ethan\",\"Florence\",\"Grace\",\"Helen\"]],[\"Age\",\"Number\",\"0101010101010101010101010101010101010101010101010101010101010101\",1,1,\"range\",[0,100]],[\"Score\",\"Number\",\"0202020202020202020202020202020202020202020202020202020202020202\",2,1,\"rawNumber\"],[\"DNA\",\"String\",\"0303030303030303030303030303030303030303030303030303030303030303\",3,3,\"rawString\"],[\"URL\",\"String\",\"0404040404040404040404040404040404040404040404040404040404040404\",6,30,\"utf8\"],[\"Value\",\"Timestamp\",\"0505050505050505050505050505050505050505050505050505050505050505\",3,3,\"rawNumber\"]]").unwrap(),
+                }, 
                 DOBClusterFormatV0 {
                     decoder: DOBDecoderFormat {
                         location: DecoderLocationType::TypeScript,
@@ -51,8 +50,8 @@ fn generate_dob1_ingredients() -> (Value, ClusterDescriptionField) {
 }
 
 #[test]
-fn test_print_dob1_ingreidents() {
-    let (_, dob_metadata) = generate_dob1_ingredients();
+fn test_print_dob_ring_ingreidents() {
+    let (_, dob_metadata) = generate_dob_ring_ingredients();
     println!(
         "cluster_description: {}",
         serde_json::to_string(&dob_metadata).unwrap()
@@ -60,10 +59,10 @@ fn test_print_dob1_ingreidents() {
 }
 
 #[tokio::test]
-async fn test_dob1_basic_decode() {
+async fn test_dob_ring_decode() {
     let settings = prepare_settings("dob/1");
-    let (content, dob_metadata) = generate_dob1_ingredients();
-    let rpc = RpcClient::new(&settings.ckb_rpc, None);
+    let (content, dob_metadata) = generate_dob_ring_ingredients();
+    let rpc = MockRpcClient::new(&settings.ckb_rpc, None);
     let decoder = DOBDecoder::new(rpc, settings);
     let dna = content.get("dna").unwrap().as_str().unwrap();
     let render_result = decoder

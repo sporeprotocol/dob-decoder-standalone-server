@@ -1,5 +1,6 @@
 use std::fs;
 
+use client::RpcClient;
 use jsonrpsee::{server::ServerBuilder, tracing};
 use server::DecoderRpcServer;
 use tracing_subscriber::EnvFilter;
@@ -27,7 +28,8 @@ async fn main() {
     );
     let rpc_server_address = settings.rpc_server_address.clone();
     let cache_expiration = settings.dobs_cache_expiration_sec;
-    let decoder = decoder::DOBDecoder::new(settings);
+    let rpc = RpcClient::new(&settings.ckb_rpc, None);
+    let decoder = decoder::DOBDecoder::new(rpc, settings);
 
     tracing::info!("running decoder server at {}", rpc_server_address);
     let http_server = ServerBuilder::new()

@@ -76,6 +76,14 @@ pub enum Error {
     DecoderScriptNotFound,
     #[error("decoder chain list cannot be empty")]
     DecoderChainIsEmpty,
+    #[error("DOB ring broken with disconnected cell output")]
+    CellOutputNotFound,
+    #[error("invalid DOB spore cell")]
+    InvalidDOBCell,
+    #[error("DOB ring broken with invalid ring pointer")]
+    InvalidNextDobRingPointer,
+    #[error("DOB ring is not a circle")]
+    DobRingUncirclelized,
 }
 
 pub enum Dob<'a> {

@@ -1,6 +1,7 @@
 use ckb_types::{h256, H256};
 use serde_json::{json, Value};
 
+use crate::client::RpcClient;
 use crate::decoder::DOBDecoder;
 use crate::tests::prepare_settings;
 use crate::types::{
@@ -85,13 +86,14 @@ fn generate_example_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
 #[tokio::test]
 async fn test_fetch_and_decode_unicorn_dna() {
     let settings = prepare_settings("text/plain");
-    let decoder = DOBDecoder::new(settings);
-    let ((_, dna), dob_metadata) = decoder
+    let rpc = RpcClient::new(&settings.ckb_rpc, None);
+    let decoder = DOBDecoder::new(rpc, settings);
+    let ((_, dna), dob_metadata, type_hash) = decoder
         .fetch_decode_ingredients(UNICORN_SPORE_ID.into())
         .await
         .expect("fetch");
     let render_result = decoder
-        .decode_dna(&dna, dob_metadata)
+        .decode_dna(&dna, dob_metadata, type_hash)
         // array type
         .await
         .expect("decode");
@@ -116,13 +118,14 @@ fn test_unicorn_json_serde() {
 #[tokio::test]
 async fn test_fetch_and_decode_example_dna() {
     let settings = prepare_settings("text/plain");
-    let decoder = DOBDecoder::new(settings);
-    let ((_, dna), dob_metadata) = decoder
+    let rpc = RpcClient::new(&settings.ckb_rpc, None);
+    let decoder = DOBDecoder::new(rpc, settings);
+    let ((_, dna), dob_metadata, type_hash) = decoder
         .fetch_decode_ingredients(EXAMPLE_SPORE_ID.into())
         .await
         .expect("fetch");
     let render_result = decoder
-        .decode_dna(&dna, dob_metadata)
+        .decode_dna(&dna, dob_metadata, type_hash)
         // array type
         .await
         .expect("decode");

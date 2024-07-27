@@ -4,6 +4,7 @@ use crate::types::{HashType, OnchainDecoderDeployment, ScriptId, Settings};
 
 mod dob0;
 mod dob1;
+mod dob_ring;
 
 fn prepare_settings(version: &str) -> Settings {
     Settings {

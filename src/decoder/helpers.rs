@@ -4,14 +4,14 @@ use ckb_sdk::{constants::TYPE_ID_CODE_HASH, traits::CellQueryOptions};
 use ckb_types::{
     core::ScriptHashType,
     packed::{OutPoint, Script},
-    prelude::{Builder, Entity, Pack},
+    prelude::{Builder, Entity, Pack, Unpack},
     H256,
 };
 use serde_json::Value;
 use spore_types::{generated::spore::ClusterData, SporeData};
 
 use crate::{
-    client::RpcClient,
+    client::RPC,
     types::{
         ClusterDescriptionField, DOBDecoderFormat, DecoderLocationType, Error, ScriptId, Settings,
     },
@@ -78,11 +78,11 @@ pub fn decode_spore_data(spore_data: &[u8]) -> Result<(Value, String), Error> {
 }
 
 // search on-chain spore cell and return its content field, which represents dob content
-pub async fn fetch_dob_content(
-    rpc: &RpcClient,
+pub async fn fetch_dob_content<T: RPC>(
+    rpc: &T,
     settings: &Settings,
     spore_id: [u8; 32],
-) -> Result<((Value, String), [u8; 32]), Error> {
+) -> Result<((Value, String), [u8; 32], H256), Error> {
     let mut spore_cell = None;
     for spore_search_option in build_batch_search_options(spore_id, &settings.available_spores) {
         spore_cell = rpc
@@ -99,14 +99,25 @@ pub async fn fetch_dob_content(
     let Some(spore_cell) = spore_cell else {
         return Err(Error::SporeIdNotFound);
     };
+    extract_dob_information(
+        spore_cell.output_data.unwrap_or_default().as_bytes(),
+        spore_cell.output.type_.unwrap().into(),
+        &settings.protocol_versions,
+    )
+}
+
+#[allow(clippy::type_complexity)]
+pub fn extract_dob_information(
+    output_data: &[u8],
+    spore_type: Script,
+    protocol_versions: &[String],
+) -> Result<((Value, String), [u8; 32], H256), Error> {
     let molecule_spore_data =
-        SporeData::from_compatible_slice(spore_cell.output_data.unwrap_or_default().as_bytes())
-            .map_err(|_| Error::SporeDataUncompatible)?;
+        SporeData::from_compatible_slice(output_data).map_err(|_| Error::SporeDataUncompatible)?;
     let content_type = String::from_utf8(molecule_spore_data.content_type().raw_data().to_vec())
         .map_err(|_| Error::SporeDataContentTypeUncompatible)?;
     if !content_type.is_empty()
-        && !settings
-            .protocol_versions
+        && !protocol_versions
             .iter()
             .any(|version| content_type.starts_with(version))
     {
@@ -118,12 +129,17 @@ pub async fn fetch_dob_content(
         .ok_or(Error::ClusterIdNotSet)?
         .raw_data();
     let dob_content = decode_spore_data(&molecule_spore_data.content().raw_data())?;
-    Ok((dob_content, cluster_id.to_vec().try_into().unwrap()))
+    let spore_type_hash = spore_type.calc_script_hash().unpack();
+    Ok((
+        dob_content,
+        cluster_id.to_vec().try_into().unwrap(),
+        spore_type_hash,
+    ))
 }
 
 // search on-chain cluster cell and return its description field, which contains dob metadata
-pub async fn fetch_dob_metadata(
-    rpc: &RpcClient,
+pub async fn fetch_dob_metadata<T: RPC>(
+    rpc: &T,
     settings: &Settings,
     cluster_id: [u8; 32],
 ) -> Result<ClusterDescriptionField, Error> {
@@ -154,8 +170,8 @@ pub async fn fetch_dob_metadata(
 }
 
 // search on-chain decoder cell, deployed with type_id feature enabled
-async fn fetch_decoder_binary(
-    rpc: &RpcClient,
+async fn fetch_decoder_binary<T: RPC>(
+    rpc: &T,
     decoder_search_option: CellQueryOptions,
 ) -> Result<Vec<u8>, Error> {
     let decoder_cell = rpc
@@ -174,8 +190,8 @@ async fn fetch_decoder_binary(
 }
 
 // search on-chain decoder cell, directly by its tx_hash and out_index
-async fn fetch_decoder_binary_directly(
-    rpc: &RpcClient,
+async fn fetch_decoder_binary_directly<T: RPC>(
+    rpc: &T,
     tx_hash: H256,
     out_index: u32,
 ) -> Result<Vec<u8>, Error> {
@@ -192,8 +208,8 @@ async fn fetch_decoder_binary_directly(
     Ok(decoder_binary.as_bytes().to_vec())
 }
 
-pub async fn parse_decoder_path(
-    rpc: &RpcClient,
+pub async fn parse_decoder_path<T: RPC>(
+    rpc: &T,
     decoder: &DOBDecoderFormat,
     settings: &Settings,
 ) -> Result<PathBuf, Error> {
