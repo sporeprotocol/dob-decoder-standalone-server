@@ -1,0 +1,12 @@
+.git*
+
+*docker-compose*
+*Dockerfile*
+.dockerignore
+
+target
+cache
+
+README.md
+
+settings.*
