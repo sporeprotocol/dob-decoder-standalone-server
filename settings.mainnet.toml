@@ -19,9 +19,6 @@ dobs_cache_directory = "cache/dobs"
 # expiration time indicator for cleaning whole dobs cache, zero means never clean
 dobs_cache_expiration_sec = 300
 
-# determine wether the required spore should be alive or dead
-allow_dead_spore = false
-
 # all deployed on-chain Spore contracts binary hash (order from new to old)
 # refer to: https://github.com/sporeprotocol/spore-contract/blob/master/docs/VERSIONS.md
 [[available_spores]]

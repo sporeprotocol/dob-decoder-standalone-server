@@ -250,8 +250,6 @@ pub struct Settings {
     pub decoders_cache_directory: PathBuf,
     pub dobs_cache_directory: PathBuf,
     pub dobs_cache_expiration_sec: u64,
-    #[cfg_attr(feature = "standalone_server", serde(default))]
-    pub allow_dead_spore: bool,
     pub onchain_decoder_deployment: Vec<OnchainDecoderDeployment>,
     pub available_spores: Vec<ScriptId>,
     pub available_clusters: Vec<ScriptId>,
