@@ -86,46 +86,34 @@ pub async fn fetch_dob_content(
 ) -> Result<((Value, String), [u8; 32]), Error> {
     let mut spore_cell_data = None;
     for spore_search_option in build_batch_search_options(spore_id, &settings.available_spores) {
-        spore_cell_data = rpc
-            .get_cells(spore_search_option.clone().into(), 1, None)
+        let spore_mint_tx = rpc
+            .get_transactions(spore_search_option.into(), 1, None)
             .await
             .map_err(|_| Error::FetchLiveCellsError)?
             .objects
             .first()
-            .map(|cell| cell.output_data.clone().unwrap_or_default());
-        if spore_cell_data.is_some() {
-            break;
-        }
-        if settings.allow_dead_spore {
-            let spore_mint_tx = rpc
-                .get_transactions(spore_search_option.into(), 1, None)
+            .cloned();
+        if let Some(Tx::Ungrouped(mint)) = spore_mint_tx {
+            let tx = rpc
+                .get_transaction(&mint.tx_hash)
                 .await
-                .map_err(|_| Error::FetchLiveCellsError)?
-                .objects
-                .first()
-                .cloned();
-            if let Some(Tx::Ungrouped(mint)) = spore_mint_tx {
-                let tx = rpc
-                    .get_transaction(&mint.tx_hash)
-                    .await
-                    .map_err(|_| Error::FetchTransactionError)?
-                    .ok_or(Error::FetchTransactionError)?
-                    .transaction
-                    .ok_or(Error::FetchTransactionError)?;
-                let tx = match tx.inner {
-                    Either::Left(view) => view,
-                    Either::Right(bytes) => serde_json::from_slice(&bytes.into_bytes())
-                        .map_err(|_| Error::FetchTransactionError)?,
-                };
-                spore_cell_data = Some(
-                    tx.inner
-                        .outputs_data
-                        .get(mint.io_index.value() as usize)
-                        .cloned()
-                        .unwrap_or_default(),
-                );
-                break;
-            }
+                .map_err(|_| Error::FetchTransactionError)?
+                .ok_or(Error::FetchTransactionError)?
+                .transaction
+                .ok_or(Error::FetchTransactionError)?;
+            let tx = match tx.inner {
+                Either::Left(view) => view,
+                Either::Right(bytes) => serde_json::from_slice(&bytes.into_bytes())
+                    .map_err(|_| Error::FetchTransactionError)?,
+            };
+            spore_cell_data = Some(
+                tx.inner
+                    .outputs_data
+                    .get(mint.io_index.value() as usize)
+                    .cloned()
+                    .unwrap_or_default(),
+            );
+            break;
         }
     }
     let Some(spore_cell_data) = spore_cell_data else {
