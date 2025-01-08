@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use ckb_sdk::{constants::TYPE_ID_CODE_HASH, traits::CellQueryOptions};
+use ckb_jsonrpc_types::Either;
+use ckb_sdk::{constants::TYPE_ID_CODE_HASH, rpc::ckb_indexer::Tx, traits::CellQueryOptions};
 use ckb_types::{
     core::ScriptHashType,
     packed::{OutPoint, Script},
@@ -83,25 +84,55 @@ pub async fn fetch_dob_content(
     settings: &Settings,
     spore_id: [u8; 32],
 ) -> Result<((Value, String), [u8; 32]), Error> {
-    let mut spore_cell = None;
+    let mut spore_cell_data = None;
     for spore_search_option in build_batch_search_options(spore_id, &settings.available_spores) {
-        spore_cell = rpc
-            .get_cells(spore_search_option.into(), 1, None)
+        spore_cell_data = rpc
+            .get_cells(spore_search_option.clone().into(), 1, None)
             .await
             .map_err(|_| Error::FetchLiveCellsError)?
             .objects
             .first()
-            .cloned();
-        if spore_cell.is_some() {
+            .map(|cell| cell.output_data.clone().unwrap_or_default());
+        if spore_cell_data.is_some() {
             break;
         }
+        if settings.allow_dead_spore {
+            let spore_mint_tx = rpc
+                .get_transactions(spore_search_option.into(), 1, None)
+                .await
+                .map_err(|_| Error::FetchLiveCellsError)?
+                .objects
+                .first()
+                .cloned();
+            if let Some(Tx::Ungrouped(mint)) = spore_mint_tx {
+                let tx = rpc
+                    .get_transaction(&mint.tx_hash)
+                    .await
+                    .map_err(|_| Error::FetchTransactionError)?
+                    .ok_or(Error::FetchTransactionError)?
+                    .transaction
+                    .ok_or(Error::FetchTransactionError)?;
+                let tx = match tx.inner {
+                    Either::Left(view) => view,
+                    Either::Right(bytes) => serde_json::from_slice(&bytes.into_bytes())
+                        .map_err(|_| Error::FetchTransactionError)?,
+                };
+                spore_cell_data = Some(
+                    tx.inner
+                        .outputs_data
+                        .get(mint.io_index.value() as usize)
+                        .cloned()
+                        .unwrap_or_default(),
+                );
+                break;
+            }
+        }
     }
-    let Some(spore_cell) = spore_cell else {
+    let Some(spore_cell_data) = spore_cell_data else {
         return Err(Error::SporeIdNotFound);
     };
-    let molecule_spore_data =
-        SporeData::from_compatible_slice(spore_cell.output_data.unwrap_or_default().as_bytes())
-            .map_err(|_| Error::SporeDataUncompatible)?;
+    let molecule_spore_data = SporeData::from_compatible_slice(spore_cell_data.as_bytes())
+        .map_err(|_| Error::SporeDataUncompatible)?;
     let content_type = String::from_utf8(molecule_spore_data.content_type().raw_data().to_vec())
         .map_err(|_| Error::SporeDataContentTypeUncompatible)?;
     if !content_type.is_empty()

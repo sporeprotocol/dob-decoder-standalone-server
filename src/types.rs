@@ -247,10 +247,11 @@ pub struct Settings {
     pub protocol_versions: Vec<String>,
     pub ckb_rpc: String,
     pub rpc_server_address: String,
-    pub ckb_vm_runner: String,
     pub decoders_cache_directory: PathBuf,
     pub dobs_cache_directory: PathBuf,
     pub dobs_cache_expiration_sec: u64,
+    #[cfg_attr(feature = "standalone_server", serde(default))]
+    pub allow_dead_spore: bool,
     pub onchain_decoder_deployment: Vec<OnchainDecoderDeployment>,
     pub available_spores: Vec<ScriptId>,
     pub available_clusters: Vec<ScriptId>,

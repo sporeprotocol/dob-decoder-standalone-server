@@ -3,8 +3,11 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-use ckb_jsonrpc_types::{CellWithStatus, JsonBytes, OutPoint, Uint32};
-use ckb_sdk::rpc::ckb_indexer::{Cell, Order, Pagination, SearchKey};
+use ckb_jsonrpc_types::{
+    CellWithStatus, JsonBytes, OutPoint, TransactionWithStatusResponse, Uint32,
+};
+use ckb_sdk::rpc::ckb_indexer::{Cell, Order, Pagination, SearchKey, Tx};
+use ckb_types::H256;
 use jsonrpc_core::futures::FutureExt;
 use reqwest::{Client, Url};
 
@@ -110,6 +113,39 @@ impl RpcClient {
             order,
             limit,
             cursor,
+        )
+        .boxed()
+    }
+
+    pub fn get_transactions(
+        &self,
+        search_key: SearchKey,
+        limit: u32,
+        cursor: Option<JsonBytes>,
+    ) -> Rpc<Pagination<Tx>> {
+        let order = Order::Asc;
+        let limit = Uint32::from(limit);
+
+        jsonrpc!(
+            "get_transactions",
+            Target::Indexer,
+            self,
+            Pagination<Tx>,
+            search_key,
+            order,
+            limit,
+            cursor,
+        )
+        .boxed()
+    }
+
+    pub fn get_transaction(&self, hash: &H256) -> Rpc<Option<TransactionWithStatusResponse>> {
+        jsonrpc!(
+            "get_transaction",
+            Target::CKB,
+            self,
+            Option<TransactionWithStatusResponse>,
+            hash,
         )
         .boxed()
     }

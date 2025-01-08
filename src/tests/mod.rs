@@ -9,7 +9,6 @@ fn prepare_settings(version: &str) -> Settings {
     Settings {
         ckb_rpc: "https://testnet.ckbapp.dev/".to_string(),
         protocol_versions: vec![version.to_string()],
-        ckb_vm_runner: "ckb-vm-runner".to_string(),
         decoders_cache_directory: "cache/decoders".parse().unwrap(),
         dobs_cache_directory: "cache/dobs".parse().unwrap(),
         available_spores: vec![

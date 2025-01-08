@@ -10,9 +10,6 @@ ckb_rpc = "https://mainnet.ckb.dev/"
 # address that rpc server running at in case of standalone server mode
 rpc_server_address = "0.0.0.0:8090"
 
-# native ckb-vm execution env in case of embeded ckb-vm feature
-ckb_vm_runner = "ckb-vm-runner"
-
 # directory that stores decoders on hard-disk, including on-chain and off-chain binary files
 decoders_cache_directory = "cache/decoders"
 
@@ -21,6 +18,9 @@ dobs_cache_directory = "cache/dobs"
 
 # expiration time indicator for cleaning whole dobs cache, zero means never clean
 dobs_cache_expiration_sec = 300
+
+# determine wether the required spore should be alive or dead
+allow_dead_spore = false
 
 # all deployed on-chain Spore contracts binary hash (order from new to old)
 # refer to: https://github.com/sporeprotocol/spore-contract/blob/master/docs/VERSIONS.md
