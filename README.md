@@ -37,7 +37,7 @@ Steps to run a server:
 $ RUST_LOG=dob_decoder_server=debug cargo run
 ```
 
-Ant then, try it out:
+And then, try it out:
 
 ```bash
 $ echo '{

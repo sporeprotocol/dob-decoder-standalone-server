@@ -14,7 +14,8 @@ use spore_types::{generated::spore::ClusterData, SporeData};
 use crate::{
     client::RpcClient,
     types::{
-        ClusterDescriptionField, DOBDecoderFormat, DecoderLocationType, Error, ScriptId, Settings,
+        ClusterDescriptionField, DOBDecoderFormat, DOBSporeFormat, DecoderLocationType, Error,
+        ScriptId, Settings,
     },
 };
 
@@ -54,14 +55,32 @@ fn build_batch_search_options(
         .collect()
 }
 
-pub fn decode_spore_data(spore_data: &[u8]) -> Result<(Value, String), Error> {
-    if spore_data[0] == 0u8 {
-        let dna = hex::encode(&spore_data[1..]);
+pub fn decode_spore_data(spore_data: &[u8]) -> Result<DOBSporeFormat, Error> {
+    let molecule_spore_data =
+        SporeData::from_compatible_slice(spore_data).map_err(|_| Error::SporeDataUncompatible)?;
+    let content_type = String::from_utf8(molecule_spore_data.content_type().raw_data().to_vec())
+        .map_err(|_| Error::SporeDataContentTypeUncompatible)?;
+    let cluster_id = molecule_spore_data
+        .cluster_id()
+        .to_opt()
+        .ok_or(Error::ClusterIdNotSet)?
+        .raw_data();
+    let (content, dna) = decode_spore_content(&molecule_spore_data.content().raw_data())?;
+    Ok(DOBSporeFormat {
+        content_type,
+        content,
+        dna,
+        cluster_id: cluster_id.to_vec().try_into().unwrap(),
+    })
+}
+
+pub fn decode_spore_content(content: &[u8]) -> Result<(Value, String), Error> {
+    if content[0] == 0u8 {
+        let dna = hex::encode(&content[1..]);
         return Ok((serde_json::Value::String(dna.clone()), dna));
     }
 
-    let value: Value =
-        serde_json::from_slice(spore_data).map_err(|_| Error::DOBContentUnexpected)?;
+    let value: Value = serde_json::from_slice(content).map_err(|_| Error::DOBContentUnexpected)?;
     let dna = match &value {
         serde_json::Value::String(_) => &value,
         serde_json::Value::Array(array) => array.first().ok_or(Error::DOBContentUnexpected)?,
@@ -83,7 +102,7 @@ pub async fn fetch_dob_content(
     rpc: &RpcClient,
     settings: &Settings,
     spore_id: [u8; 32],
-) -> Result<((Value, String), [u8; 32]), Error> {
+) -> Result<DOBSporeFormat, Error> {
     let mut spore_cell_data = None;
     for spore_search_option in build_batch_search_options(spore_id, &settings.available_spores) {
         let spore_mint_tx = rpc
@@ -119,25 +138,16 @@ pub async fn fetch_dob_content(
     let Some(spore_cell_data) = spore_cell_data else {
         return Err(Error::SporeIdNotFound);
     };
-    let molecule_spore_data = SporeData::from_compatible_slice(spore_cell_data.as_bytes())
-        .map_err(|_| Error::SporeDataUncompatible)?;
-    let content_type = String::from_utf8(molecule_spore_data.content_type().raw_data().to_vec())
-        .map_err(|_| Error::SporeDataContentTypeUncompatible)?;
-    if !content_type.is_empty()
+    let dob = decode_spore_data(spore_cell_data.as_bytes())?;
+    if !dob.content_type.is_empty()
         && !settings
             .protocol_versions
             .iter()
-            .any(|version| content_type.starts_with(version))
+            .any(|version| dob.content_type.starts_with(version))
     {
         return Err(Error::DOBVersionUnexpected);
     }
-    let cluster_id = molecule_spore_data
-        .cluster_id()
-        .to_opt()
-        .ok_or(Error::ClusterIdNotSet)?
-        .raw_data();
-    let dob_content = decode_spore_data(&molecule_spore_data.content().raw_data())?;
-    Ok((dob_content, cluster_id.to_vec().try_into().unwrap()))
+    Ok(dob)
 }
 
 // search on-chain cluster cell and return its description field, which contains dob metadata
@@ -164,9 +174,12 @@ pub async fn fetch_dob_metadata(
     let Some(cluster_cell) = cluster_cell else {
         return Err(Error::ClusterIdNotFound);
     };
-    let molecule_cluster_data =
-        ClusterData::from_compatible_slice(cluster_cell.output_data.unwrap_or_default().as_bytes())
-            .map_err(|_| Error::ClusterDataUncompatible)?;
+    decode_cluster_data(cluster_cell.output_data.unwrap_or_default().as_bytes())
+}
+
+pub fn decode_cluster_data(cluster_data: &[u8]) -> Result<ClusterDescriptionField, Error> {
+    let molecule_cluster_data = ClusterData::from_compatible_slice(cluster_data)
+        .map_err(|_| Error::ClusterDataUncompatible)?;
     let dob_metadata = serde_json::from_slice(&molecule_cluster_data.description().raw_data())
         .map_err(|_| Error::DOBMetadataUnexpected)?;
     Ok(dob_metadata)

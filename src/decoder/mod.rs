@@ -35,10 +35,10 @@ impl DOBDecoder {
     pub async fn fetch_decode_ingredients(
         &self,
         spore_id: [u8; 32],
-    ) -> Result<((Value, String), ClusterDescriptionField), Error> {
-        let (content, cluster_id) = fetch_dob_content(&self.rpc, &self.settings, spore_id).await?;
-        let dob_metadata = fetch_dob_metadata(&self.rpc, &self.settings, cluster_id).await?;
-        Ok((content, dob_metadata))
+    ) -> Result<(Value, String, ClusterDescriptionField), Error> {
+        let spore = fetch_dob_content(&self.rpc, &self.settings, spore_id).await?;
+        let dob_metadata = fetch_dob_metadata(&self.rpc, &self.settings, spore.cluster_id).await?;
+        Ok((spore.content, spore.dna, dob_metadata))
     }
 
     // decode DNA under target spore_id

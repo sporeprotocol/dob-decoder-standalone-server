@@ -122,6 +122,13 @@ impl ClusterDescriptionField {
     }
 }
 
+pub struct DOBSporeFormat {
+    pub content_type: String,
+    pub content: Value,
+    pub dna: String,
+    pub cluster_id: [u8; 32],
+}
+
 // contains `decoder` and `pattern` identifiers
 //
 // note: if `ver` is empty, `dob_ver_0` must uniquely exist

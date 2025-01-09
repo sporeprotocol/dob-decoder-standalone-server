@@ -7,6 +7,7 @@ use jsonrpsee::{proc_macros::rpc, tracing, types::ErrorCode};
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::decoder::helpers::{decode_cluster_data, decode_spore_data};
 use crate::decoder::DOBDecoder;
 use crate::types::Error;
 
@@ -27,6 +28,13 @@ trait DecoderRpc {
 
     #[method(name = "dob_batch_decode")]
     async fn batch_decode(&self, hexed_spore_ids: Vec<String>) -> Result<Vec<String>, ErrorCode>;
+
+    #[method(name = "dob_raw_decode")]
+    async fn raw_decode(
+        &self,
+        spore_data: String,
+        cluster_data: String,
+    ) -> Result<String, ErrorCode>;
 }
 
 pub struct DecoderStandaloneServer {
@@ -47,7 +55,7 @@ impl DecoderStandaloneServer {
         spore_id: [u8; 32],
         cache_path: PathBuf,
     ) -> Result<(String, Value), Error> {
-        let ((content, dna), metadata) = self.decoder.fetch_decode_ingredients(spore_id).await?;
+        let (content, dna, metadata) = self.decoder.fetch_decode_ingredients(spore_id).await?;
         let render_output = self.decoder.decode_dna(&dna, metadata).await?;
         write_dob_to_cache(&render_output, &content, cache_path, self.cache_expiration)?;
         Ok((render_output, content))
@@ -63,7 +71,7 @@ impl DecoderRpcServer for DecoderStandaloneServer {
     // decode DNA in particular spore DOB cell
     async fn decode(&self, hexed_spore_id: String) -> Result<String, ErrorCode> {
         tracing::info!("decoding spore_id {hexed_spore_id}");
-        let spore_id: [u8; 32] = hex::decode(hexed_spore_id.clone())
+        let spore_id: [u8; 32] = hex::decode(trim_0x(&hexed_spore_id))
             .map_err(|_| Error::HexedSporeIdParseError)?
             .try_into()
             .map_err(|_| Error::SporeIdLengthInvalid)?;
@@ -100,6 +108,32 @@ impl DecoderRpcServer for DecoderStandaloneServer {
             .collect();
         Ok(results)
     }
+
+    // decode directly from spore and cluster data
+    async fn raw_decode(
+        &self,
+        hexed_spore_data: String,
+        hexed_cluster_data: String,
+    ) -> Result<String, ErrorCode> {
+        let spore_data =
+            hex::decode(trim_0x(&hexed_spore_data)).map_err(|_| Error::SporeDataUncompatible)?;
+        let cluster_data = hex::decode(trim_0x(&hexed_cluster_data))
+            .map_err(|_| Error::ClusterDataUncompatible)?;
+        let dob = decode_spore_data(&spore_data)?;
+        let dob_metadata = decode_cluster_data(&cluster_data)?;
+        let render_output = self.decoder.decode_dna(&dob.dna, dob_metadata).await?;
+        let result = serde_json::to_string(&ServerDecodeResult {
+            render_output,
+            dob_content: dob.content,
+        })
+        .unwrap();
+        tracing::info!("raw, result: {result}");
+        Ok(result)
+    }
+}
+
+fn trim_0x(hexed: &str) -> &str {
+    hexed.trim_start_matches("0x")
 }
 
 fn read_dob_from_cache(

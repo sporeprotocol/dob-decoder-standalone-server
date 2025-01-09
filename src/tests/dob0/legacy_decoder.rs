@@ -1,6 +1,6 @@
 use ckb_types::{h256, H256};
 
-use crate::decoder::{helpers::decode_spore_data, DOBDecoder};
+use crate::decoder::{helpers::decode_spore_content, DOBDecoder};
 use crate::tests::prepare_settings;
 use crate::types::{
     ClusterDescriptionField, DOBClusterFormat, DOBClusterFormatV0, DOBDecoderFormat,
@@ -101,7 +101,7 @@ async fn test_decode_unicorn_dna() {
 async fn test_fetch_and_decode_nervape_dna() {
     let settings = prepare_settings("text/plain");
     let decoder = DOBDecoder::new(settings);
-    let ((_, dna), dob_metadata) = decoder
+    let (_, dna, dob_metadata) = decoder
         .fetch_decode_ingredients(NERVAPE_SPORE_ID.into())
         .await
         .expect("fetch");
@@ -165,7 +165,7 @@ fn test_decode_multiple_spore_data() {
     .enumerate()
     .for_each(|(i, spore_data)| {
         let (_, v) =
-            decode_spore_data(spore_data.as_bytes()).expect(&format!("assert type index {i}"));
+            decode_spore_content(spore_data.as_bytes()).expect(&format!("assert type index {i}"));
         assert_eq!(v, dna, "object type comparison failed");
     });
 }
