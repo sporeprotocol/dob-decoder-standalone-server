@@ -3,6 +3,7 @@
 Provide an one-step DOB rendering service to squash a batch of complex steps that from DNA fetching to DOB traits rendering.
 
 Online features:
+
 - [x] embeded `ckb-vm` executor
 - [x] executable standalone JsonRpc server
 - [x] decoder binaries temporary cache
@@ -59,37 +60,3 @@ Spore DOB protocol has unique version identifier (like ERC721 or ERC1155), howev
 ## Error codes
 
 refer to error definitions [here](https://github.com/sporeprotocol/dob-decoder-standalone-server/blob/master/src/types.rs#L13).
-
-| error code | short definition |
-| -------- | ------- |
-| 1001 | DnaLengthNotMatch |
-| 1002 | SporeIdLengthInvalid |
-| 1003 | NativeDecoderNotFound |
-| 1004 | SporeIdNotFound |
-| 1005 | SporeDataUncompatible |
-| 1006 | SporeDataContentTypeUncompatible |
-| 1007 | DOBVersionUnexpected |
-| 1008 | ClusterIdNotSet |
-| 1009 | ClusterIdNotFound |
-| 1010 | ClusterDataUncompatible |
-| 1011 | DecoderIdNotFound |
-| 1012 | DecoderOutputInvalid |
-| 1013 | HexedDNAParseError |
-| 1014 | HexedSporeIdParseError |
-| 1015 | DecoderBinaryPathInvalid |
-| 1016 | DecoderExecutionError |
-| 1017 | DecoderExecutionInternalError |
-| 1018 | FetchLiveCellsError |
-| 1019 | FetchTransactionError |
-| 1020 | NoOutputCellInTransaction |
-| 1021 | DOBContentUnexpected |
-| 1022 | DOBMetadataUnexpected |
-| 1023 | DOBRenderCacheNotFound |
-| 1024 | DOBRenderCacheModified |
-| 1025 | DecoderBinaryHashInvalid |
-| 1026 | DecoderBinaryNotFoundInCell |
-| 1027 | JsonRpcRequestError |
-| 1028 | SystemTimeError |
-| 1029 | DecoderHashNotFound |
-| 1030 | DecoderScriptNotFound |
-| 1031 | DecoderChainIsEmpty |

@@ -42,18 +42,18 @@ macro_rules! jsonrpc {
             let resp = c
                 .send()
                 .await
-                .map_err::<Error, _>(|_| Error::JsonRpcRequestError)?;
+                .map_err::<Error, _>(|e| Error::JsonRpcRequestError(e.to_string()))?;
             let output = resp
                 .json::<jsonrpc_core::response::Output>()
                 .await
-                .map_err::<Error, _>(|_| Error::JsonRpcRequestError)?;
+                .map_err::<Error, _>(|e| Error::JsonRpcRequestError(e.to_string()))?;
 
             match output {
                 jsonrpc_core::response::Output::Success(success) => {
                     Ok(serde_json::from_value::<$return>(success.result).unwrap())
                 }
-                jsonrpc_core::response::Output::Failure(_) => {
-                    Err(Error::JsonRpcRequestError)
+                jsonrpc_core::response::Output::Failure(e) => {
+                    Err(Error::JsonRpcRequestError(e.error.to_string()))
                 }
             }
         }

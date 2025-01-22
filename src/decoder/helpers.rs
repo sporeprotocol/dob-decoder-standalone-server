@@ -33,7 +33,7 @@ fn build_type_script_search_option(type_script: Script) -> CellQueryOptions {
 }
 
 fn build_batch_search_options(
-    type_args: [u8; 32],
+    type_args: &[u8; 32],
     available_script_ids: &[ScriptId],
 ) -> Vec<CellQueryOptions> {
     available_script_ids
@@ -104,26 +104,29 @@ pub async fn fetch_dob_content(
     spore_id: [u8; 32],
 ) -> Result<DOBSporeFormat, Error> {
     let mut spore_cell_data = None;
-    for spore_search_option in build_batch_search_options(spore_id, &settings.available_spores) {
+    for spore_search_option in build_batch_search_options(&spore_id, &settings.available_spores) {
         let spore_mint_tx = rpc
             .get_transactions(spore_search_option.into(), 1, None)
             .await
-            .map_err(|_| Error::FetchLiveCellsError)?
+            .map_err(|e| Error::FetchTransactionError(e.to_string()))?
             .objects
             .first()
             .cloned();
         if let Some(Tx::Ungrouped(mint)) = spore_mint_tx {
-            let tx = rpc
+            let Some(tx) = rpc
                 .get_transaction(&mint.tx_hash)
                 .await
-                .map_err(|_| Error::FetchTransactionError)?
-                .ok_or(Error::FetchTransactionError)?
-                .transaction
-                .ok_or(Error::FetchTransactionError)?;
+                .map_err(|e| Error::FetchTransactionError(e.to_string()))?
+            else {
+                continue;
+            };
+            let Some(tx) = tx.transaction else {
+                continue;
+            };
             let tx = match tx.inner {
                 Either::Left(view) => view,
                 Either::Right(bytes) => serde_json::from_slice(&bytes.into_bytes())
-                    .map_err(|_| Error::FetchTransactionError)?,
+                    .map_err(|e| Error::FetchTransactionError(e.to_string()))?,
             };
             spore_cell_data = Some(
                 tx.inner
@@ -136,7 +139,7 @@ pub async fn fetch_dob_content(
         }
     }
     let Some(spore_cell_data) = spore_cell_data else {
-        return Err(Error::SporeIdNotFound);
+        return Err(Error::SporeIdNotFound(hex::encode(spore_id)));
     };
     let dob = decode_spore_data(spore_cell_data.as_bytes())?;
     if !dob.content_type.is_empty()
@@ -145,7 +148,7 @@ pub async fn fetch_dob_content(
             .iter()
             .any(|version| dob.content_type.starts_with(version))
     {
-        return Err(Error::DOBVersionUnexpected);
+        return Err(Error::DOBVersionUnexpected(dob.content_type));
     }
     Ok(dob)
 }
@@ -158,12 +161,12 @@ pub async fn fetch_dob_metadata(
 ) -> Result<ClusterDescriptionField, Error> {
     let mut cluster_cell = None;
     for cluster_search_option in
-        build_batch_search_options(cluster_id, &settings.available_clusters)
+        build_batch_search_options(&cluster_id, &settings.available_clusters)
     {
         cluster_cell = rpc
             .get_cells(cluster_search_option.into(), 1, None)
             .await
-            .map_err(|_| Error::FetchLiveCellsError)?
+            .map_err(|e| Error::FetchLiveCellsError(e.to_string()))?
             .objects
             .first()
             .cloned();
@@ -172,7 +175,7 @@ pub async fn fetch_dob_metadata(
         }
     }
     let Some(cluster_cell) = cluster_cell else {
-        return Err(Error::ClusterIdNotFound);
+        return Err(Error::ClusterIdNotFound(hex::encode(cluster_id)));
     };
     decode_cluster_data(cluster_cell.output_data.unwrap_or_default().as_bytes())
 }
@@ -193,7 +196,7 @@ async fn fetch_decoder_binary(
     let decoder_cell = rpc
         .get_cells(decoder_search_option.into(), 1, None)
         .await
-        .map_err(|_| Error::FetchLiveCellsError)?
+        .map_err(|e| Error::FetchLiveCellsError(e.to_string()))?
         .objects
         .first()
         .cloned()
@@ -214,10 +217,10 @@ async fn fetch_decoder_binary_directly(
     let decoder_cell = rpc
         .get_live_cell(&OutPoint::new(tx_hash.pack(), out_index).into(), true)
         .await
-        .map_err(|_| Error::FetchTransactionError)?;
+        .map_err(|e| Error::FetchLiveCellsError(e.to_string()))?;
     let decoder_binary = decoder_cell
         .cell
-        .ok_or(Error::NoOutputCellInTransaction)?
+        .ok_or(Error::DecoderCellNotFound(hex::encode(tx_hash), out_index))?
         .data
         .ok_or(Error::DecoderBinaryNotFoundInCell)?
         .content;
@@ -255,7 +258,7 @@ pub async fn parse_decoder_path(
                 };
                 let decoder_file_content = decoder_binary.await?;
                 if ckb_hash::blake2b_256(&decoder_file_content) != hash.0 {
-                    return Err(Error::DecoderBinaryHashInvalid);
+                    return Err(Error::DecoderBinaryHashInvalid(decoder_path));
                 }
                 std::fs::write(decoder_path.clone(), decoder_file_content)
                     .map_err(|_| Error::DecoderBinaryPathInvalid)?;

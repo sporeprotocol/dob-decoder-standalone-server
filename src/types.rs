@@ -6,75 +6,74 @@ use serde::{ser::SerializeMap, Deserialize};
 use serde_json::Value;
 
 #[cfg(feature = "standalone_server")]
-use jsonrpsee::types::ErrorCode;
+use jsonrpsee::types::ErrorObjectOwned;
 #[cfg(feature = "standalone_server")]
 use serde::Serialize;
 
 #[allow(clippy::enum_variant_names)]
 #[derive(thiserror::Error, Debug)]
-#[repr(i32)]
 pub enum Error {
-    #[error("DNA bytes length not match the requirement in Cluster")]
-    DnaLengthNotMatch = 1001,
-    #[error("spore id length should equal to 32")]
+    #[error("DOB version number only support 0 and 1, please check your cluster config")]
+    DOBVersionNumberUndefined,
+    #[error("spore id byte length should be equal to 32")]
     SporeIdLengthInvalid,
-    #[error("natvie decoder not found")]
+    #[error("decoder of spore dob is not set into server's configuration")]
     NativeDecoderNotFound,
-    #[error("spore id not exist on-chain")]
-    SporeIdNotFound,
-    #[error("uncompatible spore data")]
+    #[error("spore id not found from ckb network")]
+    SporeIdNotFound(String),
+    #[error("spore data is not in format of spore protocol")]
     SporeDataUncompatible,
-    #[error("uncompatible spore data content_type")]
+    #[error("content type of spore is not in utf-8 format")]
     SporeDataContentTypeUncompatible,
-    #[error("unexpected DOB protocol version")]
-    DOBVersionUnexpected,
-    #[error("miss cluster id in spore data")]
+    #[error("declared dob version `{0}` isn't set into server's configuration")]
+    DOBVersionUnexpected(String),
+    #[error("cluster id not found in spore data")]
     ClusterIdNotSet,
-    #[error("cluster id not exist on-chain")]
-    ClusterIdNotFound,
-    #[error("uncompatible cluster data")]
+    #[error("cluster id `{0}` not found from ckb network")]
+    ClusterIdNotFound(String),
+    #[error("cluster data is not in format of spore protocol")]
     ClusterDataUncompatible,
-    #[error("decoder id not exist on-chain")]
+    #[error("decoder script configured in cluster not found from ckb network")]
     DecoderIdNotFound,
-    #[error("output of decoder should contain at least one line")]
+    #[error("output of decoder program not in format json")]
     DecoderOutputInvalid,
-    #[error("DNA string is not in hex format")]
-    HexedDNAParseError,
+    #[error("decoder program outputs nothing, please check decoder program code")]
+    DecoderOutputEmpty,
     #[error("spore id string is not in hex format")]
     HexedSporeIdParseError,
-    #[error("invalid decoder path to persist")]
+    #[error("configured decoder binary persistence path is unwriteable")]
     DecoderBinaryPathInvalid,
-    #[error("encounter error while executing DNA decoding")]
-    DecoderExecutionError,
-    #[error("decoding program triggered an error")]
-    DecoderExecutionInternalError,
-    #[error("encounter error while searching live cells")]
-    FetchLiveCellsError,
-    #[error("encounter error while searching transaction by hash")]
-    FetchTransactionError,
-    #[error("not found specific output_cell in transaction")]
-    NoOutputCellInTransaction,
-    #[error("spore content cannot parse to DOB content")]
+    #[error("execute_riscv_binary call failed: {0}")]
+    DecoderExecutionError(String),
+    #[error("decoder program triggered an error code: {0}")]
+    DecoderExecutionInternalError(i8),
+    #[error("get_cells or get_live_cell rpc failed: {0}")]
+    FetchLiveCellsError(String),
+    #[error("get_transaction or get_transactions rpc failed: {0}")]
+    FetchTransactionError(String),
+    #[error("decoder cell not found in outpoint({0}:{1})")]
+    DecoderCellNotFound(String, u32),
+    #[error("spore content doesn't follow the specs of DOB protocol")]
     DOBContentUnexpected,
-    #[error("cluster description cannot parse to DOB metadata")]
+    #[error("cluster description doesn't follow the specs of DOB protocol")]
     DOBMetadataUnexpected,
-    #[error("DOB render cache folder not found")]
-    DOBRenderCacheNotFound,
-    #[error("cached DOB render result file has changed unexpectedly")]
-    DOBRenderCacheModified,
-    #[error("invalid deployed on-chain decoder code_hash")]
-    DecoderBinaryHashInvalid,
-    #[error("no binary found in cell for decoder")]
+    #[error("configured DOB render cache file `{0}` is unwriteable or unreadable")]
+    DOBRenderCacheNotFound(PathBuf),
+    #[error("DOB render cache file `{0}` has been mannually modified")]
+    DOBRenderCacheModified(PathBuf),
+    #[error("cached decoder binary file `{0}` has modified")]
+    DecoderBinaryHashInvalid(PathBuf),
+    #[error("deployed decoder cell has empty cell data")]
     DecoderBinaryNotFoundInCell,
-    #[error("error ocurred while requesing json-rpc")]
-    JsonRpcRequestError,
-    #[error("error ocurred while requiring system timestamp")]
+    #[error("JSON-RPC requesting error: {0}")]
+    JsonRpcRequestError(String),
+    #[error("system time calculation error")]
     SystemTimeError,
-    #[error("no decoder hash fund in DOB metadata")]
+    #[error("decoder in cluster used code_hash or type_id type, but no `hash` field found")]
     DecoderHashNotFound,
-    #[error("no decoder type_script fund in DOB metadata")]
+    #[error("decoder in cluster used type_script type, but no `script` field found")]
     DecoderScriptNotFound,
-    #[error("decoder chain list cannot be empty")]
+    #[error("decoders configured in cluster are empty, please check your cluster config")]
     DecoderChainIsEmpty,
 }
 
@@ -84,9 +83,10 @@ pub enum Dob<'a> {
 }
 
 #[cfg(feature = "standalone_server")]
-impl From<Error> for ErrorCode {
+impl From<Error> for ErrorObjectOwned {
     fn from(value: Error) -> Self {
-        (value as i32).into()
+        let message = value.to_string();
+        Self::owned::<serde_json::Value>(-1, message, None)
     }
 }
 
@@ -117,7 +117,7 @@ impl ClusterDescriptionField {
                     .ok_or(Error::ClusterDataUncompatible)?;
                 Ok(Dob::V1(dob1))
             }
-            _ => Err(Error::DOBVersionUnexpected),
+            _ => Err(Error::DOBVersionNumberUndefined),
         }
     }
 }
