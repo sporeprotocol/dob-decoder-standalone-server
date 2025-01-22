@@ -66,7 +66,7 @@ impl DOBDecoder {
                 &decoder_path.to_string_lossy(),
                 vec![dna.to_owned().into(), pattern.into()],
             )
-            .map_err(|_| Error::DecoderExecutionError)?;
+            .map_err(|e| Error::DecoderExecutionError(e.to_string()))?;
             #[cfg(feature = "render_debug")]
             {
                 println!("\n-------- DOB/0 DECODE RESULT ({exit_code}) ---------");
@@ -74,9 +74,9 @@ impl DOBDecoder {
                 println!("-------- DOB/0 DECODE RESULT END ---------");
             }
             if exit_code != 0 {
-                return Err(Error::DecoderExecutionInternalError);
+                return Err(Error::DecoderExecutionInternalError(exit_code));
             }
-            outputs.first().ok_or(Error::DecoderOutputInvalid)?.clone()
+            outputs.first().ok_or(Error::DecoderOutputEmpty)?.clone()
         };
         Ok(raw_render_result)
     }
@@ -105,7 +105,7 @@ impl DOBDecoder {
                 };
                 let (exit_code, outputs) =
                     crate::vm::execute_riscv_binary(&decoder_path.to_string_lossy(), args)
-                        .map_err(|_| Error::DecoderExecutionError)?;
+                        .map_err(|e| Error::DecoderExecutionError(e.to_string()))?;
                 #[cfg(feature = "render_debug")]
                 {
                     println!("\n-------- DOB/1 DECODE RESULT ({i} => {exit_code}) ---------");
@@ -113,9 +113,9 @@ impl DOBDecoder {
                     println!("-------- DOB/1 DECODE RESULT END ---------");
                 }
                 if exit_code != 0 {
-                    return Err(Error::DecoderExecutionInternalError);
+                    return Err(Error::DecoderExecutionInternalError(exit_code));
                 }
-                outputs.first().ok_or(Error::DecoderOutputInvalid)?.clone()
+                outputs.first().ok_or(Error::DecoderOutputEmpty)?.clone()
             };
             output = Some(
                 serde_json::from_str(&raw_render_result)
