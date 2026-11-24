@@ -11,17 +11,18 @@ RUN cargo new app
 WORKDIR /app
 RUN --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
   --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
-  cargo build --release
+  cargo build --release --locked
 
 COPY . .
-RUN touch src/main.rs; cargo build --release
+RUN touch src/main.rs && cargo build --release --locked
 
 FROM alpine:3
-RUN apk add --no-cache libgcc
+RUN apk add --no-cache ca-certificates libgcc libssl3 libcrypto3
 
 COPY --link --from=builder /app/target/release/dob-decoder-server /app/dob-decoder-server
 
 WORKDIR /app
 RUN mkdir -p cache/decoders cache/dobs
+STOPSIGNAL SIGINT
 EXPOSE 8090
 CMD ["/app/dob-decoder-server"]

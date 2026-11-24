@@ -1,6 +1,7 @@
 .git*
 
 *docker-compose*
+compose.example.yaml
 *Dockerfile*
 .dockerignore
 
