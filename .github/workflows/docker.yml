@@ -48,16 +48,31 @@ jobs:
           }
           trap 'cleanup "$?"' EXIT
           smoke() {
-            curl --fail --silent --show-error --retry 15 --retry-connrefused --retry-delay 1 --max-time 3 \
-              -H 'Content-Type: application/json' \
-              --data '{"jsonrpc":"2.0","id":1,"method":"dob_protocol_version","params":[]}' \
-              "http://127.0.0.1:$1" \
-              | jq -e '.jsonrpc == "2.0" and .id == 1 and .result == ["dob/0", "dob/1"]'
+            local deadline=$((SECONDS + 25)) remaining response
+            while (( (remaining = deadline - SECONDS) > 0 )); do
+              if response=$(curl --fail --silent --max-time "$((remaining < 3 ? remaining : 3))" \
+                -H 'Content-Type: application/json' \
+                --data '{"jsonrpc":"2.0","id":1,"method":"dob_protocol_version","params":[]}' \
+                "http://127.0.0.1:$1") &&
+                jq -e '.jsonrpc == "2.0" and .id == 1 and .result == ["dob/0", "dob/1"]' \
+                  <<< "$response" >/dev/null 2>&1; then
+                return 0
+              fi
+              if (( SECONDS < deadline )); then sleep 1; fi
+            done
+            echo "Decoder RPC on port $1 did not become ready within 25 seconds." >&2
+            return 1
           }
 
           # No upstream CKB RPC request is needed for this method.
           [[ $("${compose[@]}" --profile mainnet config --services) == mainnet ]]
           [[ $("${compose[@]}" --profile testnet config --services) == testnet ]]
+          seed=code_hash_13cac78ad8482202f18f9df4ea707611c35f994375fa03ae79121312dda9925c.bin
+          expected=$(sha256sum "cache/decoders/$seed")
+          expected=${expected%% *}
+          for network in mainnet testnet; do
+            install -D "cache/decoders/$seed" "cache/$network/decoders/$seed"
+          done
           "${compose[@]}" --profile mainnet up -d --no-build --pull never
           smoke 8090
           "${compose[@]}" --profile mainnet --profile testnet up -d --no-build --pull never
@@ -66,6 +81,8 @@ jobs:
           for network in mainnet testnet; do
             "${compose[@]}" --profile "$network" exec -T "$network" sh -ec \
               'test -r settings.toml && test ! -w settings.toml && test -w cache/decoders && test -w cache/dobs'
+            actual=$("${compose[@]}" --profile "$network" exec -T "$network" sha256sum "cache/decoders/$seed")
+            [[ ${actual%% *} == "$expected" ]]
           done
 
       - name: Export the tested image
@@ -123,9 +140,30 @@ jobs:
           printf '%s\n' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
           unset GHCR_TOKEN
 
+          verify_config() {
+            jq -e --arg arch "$1" --arg sha "$GITHUB_SHA" \
+              '.os == "linux" and .architecture == $arch and .config.Labels["org.opencontainers.image.revision"] == $sha'
+          }
+
           # Never overwrite an existing SHA tag, or treat a registry error as absence.
-          if result=$(docker buildx imagetools inspect "$tag" 2>&1); then
-            echo "Image tag $tag already exists; leaving it unchanged."
+          if result=$(docker buildx imagetools inspect --raw "$tag" 2>&1); then
+            if ! jq -e '
+              [.manifests[] | [.platform.os, .platform.architecture]] | sort
+              == [["linux","amd64"],["linux","arm64"]]' <<< "$result"; then
+              echo "Existing image $tag does not have exactly linux/amd64 and linux/arm64; leaving it unchanged." >&2
+              exit 1
+            fi
+            for arch in amd64 arm64; do
+              digest=$(jq -er --arg arch "$arch" '
+                .manifests[] | select(.platform.architecture == $arch) | .digest' <<< "$result")
+              [[ $digest =~ ^sha256:[a-f0-9]{64}$ ]]
+              if ! skopeo inspect --authfile "$DOCKER_CONFIG/config.json" --config "docker://$image@$digest" \
+                | verify_config "$arch"; then
+                echo "Cannot verify existing image $tag for linux/$arch at revision $GITHUB_SHA; leaving it unchanged." >&2
+                exit 1
+              fi
+            done
+            printf 'Verified existing image `%s`; no changes made.\n' "$tag" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           elif [[ $result != "ERROR: $tag: not found" ]] && ! grep -Fqi 'manifest unknown' <<< "$result"; then
             printf '%s\n' "$result" >&2
@@ -138,8 +176,7 @@ jobs:
               cd "$dir"
               sha256sum --check --strict image.tar.sha256
               skopeo copy --format oci --digestfile digest.txt docker-archive:image.tar oci:layout:image
-              skopeo inspect --config oci:layout:image | jq -e --arg arch "$arch" --arg sha "$GITHUB_SHA" \
-                '.os == "linux" and .architecture == $arch and .config.Labels["org.opencontainers.image.revision"] == $sha'
+              skopeo inspect --config oci:layout:image | verify_config "$arch"
             )
           done
 

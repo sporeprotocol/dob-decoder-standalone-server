@@ -55,8 +55,23 @@ http://localhost:8090
 
 ## Docker Compose
 
-From the repository root, use Docker with the Compose v2 plugin. Enable either
-network independently; both can also run together:
+From the repository root, use Docker with the Compose v2 plugin. Prepare the
+decoder directory for each network you plan to run. With the default paths,
+you can seed those directories from the decoder binaries in this checkout:
+
+```sh
+mkdir -p ./cache/mainnet/decoders ./cache/testnet/decoders
+cp -n ./cache/decoders/code_hash_*.bin ./cache/mainnet/decoders/
+cp -n ./cache/decoders/code_hash_*.bin ./cache/testnet/decoders/
+```
+
+For your own directories, set `DOB_MAINNET_DECODERS_DIR` and/or
+`DOB_TESTNET_DECODERS_DIR` in the environment or Compose `.env` file. Use
+distinct, existing directories that the container can write to. Bind mounts
+expose the off-chain `code_hash_<hash>.bin` files placed there, and the server
+can cache on-chain decoder downloads in the same network-specific directory.
+
+Enable either network independently; both can also run together:
 
 ```sh
 docker compose -f compose.example.yaml --profile mainnet up -d --build
@@ -67,7 +82,8 @@ docker compose -f compose.example.yaml --profile mainnet --profile testnet up -d
 
 Mainnet listens on `127.0.0.1:8090` and testnet on `127.0.0.1:8091`. Each
 container reads the corresponding TOML template as `/app/settings.toml` and has
-its own persistent cache. Change `ckb_rpc` in the appropriate template if you
+its own named volume for rendered DOBs, separate from the decoder bind mount.
+Change `ckb_rpc` in the appropriate template if you
 want to use a different CKB endpoint. The example is loopback-only; configure a
 reverse proxy explicitly if you need remote access.
 
@@ -95,8 +111,8 @@ If the package is private, authenticate with GHCR for the pull. The repository
 needs write access to the package to publish; that access can be granted in
 the package's **Manage Actions access** settings.
 Use `docker compose -f compose.example.yaml stop mainnet` (or `stop testnet`)
-to stop just one service. Bringing both down without `--volumes` keeps their
-caches.
+to stop just one service. Bringing both down without `--volumes` keeps the
+rendered DOB caches. Host decoder directories are not removed by Compose.
 
 ## Protocol version
 

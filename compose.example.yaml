@@ -13,6 +13,11 @@ services:
         bind:
           create_host_path: false
       - mainnet-cache:/app/cache
+      - type: bind
+        source: ${DOB_MAINNET_DECODERS_DIR:-./cache/mainnet/decoders}
+        target: /app/cache/decoders
+        bind:
+          create_host_path: false
 
   testnet:
     profiles: [testnet]
@@ -28,6 +33,11 @@ services:
         bind:
           create_host_path: false
       - testnet-cache:/app/cache
+      - type: bind
+        source: ${DOB_TESTNET_DECODERS_DIR:-./cache/testnet/decoders}
+        target: /app/cache/decoders
+        bind:
+          create_host_path: false
 
 volumes:
   mainnet-cache:
