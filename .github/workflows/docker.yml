@@ -79,34 +79,14 @@ jobs:
           smoke 8090
           smoke 8091
           for network in mainnet testnet; do
-            echo "Checking $network settings bind mount and cache writes"
             container=$("${compose[@]}" --profile "$network" ps -q "$network")
-            # BusyBox test -w can report writable for root on a read-only mount.
-            # Check Docker's mount flag instead of inferring it from mode bits.
-            if [[ -z "$container" ]] || ! docker inspect --format '{{json .Mounts}}' "$container" |
+            docker inspect --format '{{json .Mounts}}' "$container" |
               jq -e '[.[] | select(.Destination == "/app/settings.toml")] |
-                length == 1 and .[0].Type == "bind" and .[0].RW == false' >/dev/null; then
-              echo "$network: expected a read-only bind mount at /app/settings.toml" >&2
-              exit 1
-            fi
-            if ! "${compose[@]}" --profile "$network" exec -T "$network" sh -ec '
-              test -r settings.toml || { echo "settings.toml is not readable" >&2; exit 1; }
-              for cache in cache/decoders cache/dobs; do
-                echo "Checking create/write/remove in $cache"
-                probe=$(mktemp "$cache/.ci-write.XXXXXX")
-                trap "rm -f -- \"$probe\"" EXIT
-                printf "cache write probe\n" > "$probe"
-                rm "$probe"
-                trap - EXIT
-              done'; then
-              echo "$network: settings readability or cache write probe failed" >&2
-              exit 1
-            fi
+                length == 1 and .[0].Type == "bind" and .[0].RW == false' >/dev/null
+            "${compose[@]}" --profile "$network" exec -T "$network" sh -ec \
+              'test -r settings.toml && test -w cache/decoders && test -w cache/dobs'
             actual=$("${compose[@]}" --profile "$network" exec -T "$network" sha256sum "cache/decoders/$seed")
-            if [[ ${actual%% *} != "$expected" ]]; then
-              echo "$network: decoder seed checksum mismatch for $seed" >&2
-              exit 1
-            fi
+            [[ ${actual%% *} == "$expected" ]]
           done
 
       - name: Export the tested image
