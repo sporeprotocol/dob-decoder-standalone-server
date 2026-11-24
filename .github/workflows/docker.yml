@@ -79,8 +79,12 @@ jobs:
           smoke 8090
           smoke 8091
           for network in mainnet testnet; do
+            container=$("${compose[@]}" --profile "$network" ps -q "$network")
+            docker inspect --format '{{json .Mounts}}' "$container" |
+              jq -e '[.[] | select(.Destination == "/app/settings.toml")] |
+                length == 1 and .[0].Type == "bind" and .[0].RW == false' >/dev/null
             "${compose[@]}" --profile "$network" exec -T "$network" sh -ec \
-              'test -r settings.toml && test ! -w settings.toml && test -w cache/decoders && test -w cache/dobs'
+              'test -r settings.toml && test -w cache/decoders && test -w cache/dobs'
             actual=$("${compose[@]}" --profile "$network" exec -T "$network" sha256sum "cache/decoders/$seed")
             [[ ${actual%% *} == "$expected" ]]
           done
