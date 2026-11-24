@@ -1,0 +1,34 @@
+services:
+  mainnet:
+    profiles: [mainnet]
+    build: .
+    image: ${DOB_DECODER_IMAGE:-dob-decoder-server:local}
+    ports:
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - type: bind
+        source: ./settings.mainnet.toml
+        target: /app/settings.toml
+        read_only: true
+        bind:
+          create_host_path: false
+      - mainnet-cache:/app/cache
+
+  testnet:
+    profiles: [testnet]
+    build: .
+    image: ${DOB_DECODER_IMAGE:-dob-decoder-server:local}
+    ports:
+      - "127.0.0.1:8091:8090"
+    volumes:
+      - type: bind
+        source: ./settings.toml
+        target: /app/settings.toml
+        read_only: true
+        bind:
+          create_host_path: false
+      - testnet-cache:/app/cache
+
+volumes:
+  mainnet-cache:
+  testnet-cache:

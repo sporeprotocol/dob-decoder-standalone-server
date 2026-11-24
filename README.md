@@ -53,6 +53,51 @@ $ echo '{
 http://localhost:8090
 ```
 
+## Docker Compose
+
+From the repository root, use Docker with the Compose v2 plugin. Enable either
+network independently; both can also run together:
+
+```sh
+docker compose -f compose.example.yaml --profile mainnet up -d --build
+docker compose -f compose.example.yaml --profile testnet up -d --build
+# Or start both in one command:
+docker compose -f compose.example.yaml --profile mainnet --profile testnet up -d --build
+```
+
+Mainnet listens on `127.0.0.1:8090` and testnet on `127.0.0.1:8091`. Each
+container reads the corresponding TOML template as `/app/settings.toml` and has
+its own persistent cache. Change `ckb_rpc` in the appropriate template if you
+want to use a different CKB endpoint. The example is loopback-only; configure a
+reverse proxy explicitly if you need remote access.
+
+Check that the server is ready without contacting a CKB node:
+
+```sh
+curl -fsS -H 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"dob_protocol_version","params":[]}' \
+  http://127.0.0.1:8090
+```
+
+The Docker workflow publishes an image for Linux amd64 and arm64 on successful
+pushes to this repository's `master` branch. It uses a full `sha-<commit>` tag
+and does not publish or update `latest` or version tags. To run a published
+image rather than building locally:
+
+```sh
+export DOB_DECODER_IMAGE="ghcr.io/sporeprotocol/dob-decoder-standalone-server:sha-<commit>"
+docker compose -f compose.example.yaml --profile mainnet pull
+docker compose -f compose.example.yaml --profile mainnet up -d --no-build
+```
+
+Replace `<commit>` with the full Git SHA of a successful Docker workflow run.
+If the package is private, authenticate with GHCR for the pull. The repository
+needs write access to the package to publish; that access can be granted in
+the package's **Manage Actions access** settings.
+Use `docker compose -f compose.example.yaml stop mainnet` (or `stop testnet`)
+to stop just one service. Bringing both down without `--volumes` keeps their
+caches.
+
 ## Protocol version
 
 Spore DOB protocol has unique version identifier (like ERC721 or ERC1155), however, different versions may have totally different behaviors in decoding operation, so that we come out a regulation that one server instance only serves under one specific DOB protocol version, which is marked [here](https://github.com/sporeprotocol/dob-decoder-standalone-server/blob/master/settings.toml#L2).
