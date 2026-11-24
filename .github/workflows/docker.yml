@@ -107,6 +107,9 @@ jobs:
           path: ${{ runner.temp }}/tested
           merge-multiple: false
 
+      - name: Install Skopeo
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends skopeo
+
       - name: Verify native builds and publish by digest
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
