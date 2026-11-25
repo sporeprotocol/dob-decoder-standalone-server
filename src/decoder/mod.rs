@@ -11,6 +11,7 @@ use crate::{
 pub(crate) mod helpers;
 use helpers::*;
 
+#[derive(Clone)]
 pub struct DOBDecoder {
     rpc: RpcClient,
     settings: Settings,

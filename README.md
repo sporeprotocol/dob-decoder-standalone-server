@@ -40,13 +40,57 @@ $ RUST_LOG=dob_decoder_server=debug cargo run
 
 And then, try it out:
 
+**Get protocol versions:**
+
+```bash
+$ curl -H 'content-type: application/json' -d '{
+    "id": 1,
+    "jsonrpc": "2.0",
+    "method": "dob_protocol_version",
+    "params": []
+}' http://localhost:8090
+```
+
+**Decode a spore ID:**
+
 ```bash
 $ echo '{
     "id": 2,
     "jsonrpc": "2.0",
     "method": "dob_decode",
     "params": [
-        "<spore_id in hex format without 0x prefix>"
+        "4f7fb83a65dae9b95c21e55d5776a84f17bb6377681befeedb20a077ce1d8aad"
+    ]
+}' \
+| curl -H 'content-type: application/json' -d @- \
+http://localhost:8090
+```
+
+**Decode and extract SVG from another example spore ID on mainnet:**
+
+```bash
+$ echo '{
+    "id": 3,
+    "jsonrpc": "2.0",
+    "method": "dob_decode_svg",
+    "params": [
+        "0x577bf0de0dcffe2811fa827480a700bc800c8e1e9606615b1484baeea2cba830"
+    ]
+}' \
+| curl -H 'content-type: application/json' -d @- \
+http://localhost:8090
+```
+
+**Extract image from a btcfs or ipfs path:**
+
+```bash
+$ echo '{
+    "id": 4,
+    "jsonrpc": "2.0",
+    "method": "dob_extract_image_from_fsuri",
+    "params": [
+        "btcfs://5895004e95c8a4b80f05f5314d310067a703134515d82effc2ec6eba0dda3fc9i0",
+        "base64"
     ]
 }' \
 | curl -H 'content-type: application/json' -d @- \

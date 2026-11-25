@@ -2,7 +2,7 @@ use ckb_types::{h256, H256};
 use serde_json::{json, Value};
 
 use crate::decoder::DOBDecoder;
-use crate::tests::prepare_settings;
+use crate::tests::{prepare_settings, SettingType};
 use crate::types::{
     ClusterDescriptionField, DOBClusterFormat, DOBClusterFormatV0, DOBDecoderFormat,
     DecoderLocationType,
@@ -84,7 +84,7 @@ fn generate_example_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
 
 #[tokio::test]
 async fn test_fetch_and_decode_unicorn_dna() {
-    let settings = prepare_settings("text/plain");
+    let settings = prepare_settings(SettingType::Testnet, vec!["text/plain"]);
     let decoder = DOBDecoder::new(settings);
     let (_, dna, dob_metadata) = decoder
         .fetch_decode_ingredients(UNICORN_SPORE_ID.into())
@@ -115,7 +115,7 @@ fn test_unicorn_json_serde() {
 
 #[tokio::test]
 async fn test_fetch_and_decode_example_dna() {
-    let settings = prepare_settings("text/plain");
+    let settings = prepare_settings(SettingType::Testnet, vec!["text/plain"]);
     let decoder = DOBDecoder::new(settings);
     let (_, dna, dob_metadata) = decoder
         .fetch_decode_ingredients(EXAMPLE_SPORE_ID.into())

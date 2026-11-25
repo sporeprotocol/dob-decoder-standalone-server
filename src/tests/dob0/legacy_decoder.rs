@@ -1,7 +1,7 @@
 use ckb_types::{h256, H256};
 
 use crate::decoder::{helpers::decode_spore_content, DOBDecoder};
-use crate::tests::prepare_settings;
+use crate::tests::{prepare_settings, SettingType};
 use crate::types::{
     ClusterDescriptionField, DOBClusterFormat, DOBClusterFormatV0, DOBDecoderFormat,
     DecoderLocationType,
@@ -79,11 +79,11 @@ fn generate_unicorn_dob_ingredients(onchain_decoder: bool) -> (Value, ClusterDes
 }
 
 async fn decode_unicorn_dna(onchain_decoder: bool) -> String {
-    let settings = prepare_settings("text/plain");
+    let settings = prepare_settings(SettingType::Testnet, vec!["text/plain"]);
     let decoder = DOBDecoder::new(settings);
     let (unicorn_content, unicorn_metadata) = generate_unicorn_dob_ingredients(onchain_decoder);
     decoder
-        .decode_dna(&unicorn_content["dna"].as_str().unwrap(), unicorn_metadata)
+        .decode_dna(unicorn_content["dna"].as_str().unwrap(), unicorn_metadata)
         .await
         .expect("decode")
 }
@@ -99,7 +99,7 @@ async fn test_decode_unicorn_dna() {
 
 #[tokio::test]
 async fn test_fetch_and_decode_nervape_dna() {
-    let settings = prepare_settings("text/plain");
+    let settings = prepare_settings(SettingType::Testnet, vec!["text/plain"]);
     let decoder = DOBDecoder::new(settings);
     let (_, dna, dob_metadata) = decoder
         .fetch_decode_ingredients(NERVAPE_SPORE_ID.into())
@@ -116,7 +116,7 @@ async fn test_fetch_and_decode_nervape_dna() {
 #[tokio::test]
 #[should_panic = "fetch: DOBVersionUnexpected"]
 async fn test_fetch_onchain_dob_failed() {
-    let settings = prepare_settings("dob/0");
+    let settings = prepare_settings(SettingType::Testnet, vec!["dob/0"]);
     DOBDecoder::new(settings)
         .fetch_decode_ingredients(NERVAPE_SPORE_ID.into())
         .await
@@ -164,8 +164,8 @@ fn test_decode_multiple_spore_data() {
     .into_iter()
     .enumerate()
     .for_each(|(i, spore_data)| {
-        let (_, v) =
-            decode_spore_content(spore_data.as_bytes()).expect(&format!("assert type index {i}"));
+        let (_, v) = decode_spore_content(spore_data.as_bytes())
+            .unwrap_or_else(|_| panic!("assert type index {i}"));
         assert_eq!(v, dna, "object type comparison failed");
     });
 }

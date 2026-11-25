@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 
 use crate::{
     decoder::DOBDecoder,
-    tests::prepare_settings,
+    tests::{prepare_settings, SettingType},
     types::{
         ClusterDescriptionField, DOBClusterFormat, DOBClusterFormatV0, DOBClusterFormatV1,
         DOBDecoderFormat, DecoderLocationType,
@@ -60,7 +60,7 @@ fn test_print_dob1_ingreidents() {
 
 #[tokio::test]
 async fn test_dob1_basic_decode() {
-    let settings = prepare_settings("dob/1");
+    let settings = prepare_settings(SettingType::Testnet, vec![]);
     let (content, dob_metadata) = generate_dob1_ingredients();
     let decoder = DOBDecoder::new(settings);
     let dna = content.get("dna").unwrap().as_str().unwrap();

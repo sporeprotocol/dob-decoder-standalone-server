@@ -1,8 +1,9 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use ckb_jsonrpc_types::Script;
 use ckb_types::{core::ScriptHashType, H256};
-use serde::{ser::SerializeMap, Deserialize};
+use reqwest::Url;
+use serde::{ser::SerializeMap, Deserialize, Deserializer, Serializer};
 use serde_json::Value;
 
 #[cfg(feature = "standalone_server")]
@@ -75,6 +76,30 @@ pub enum Error {
     DecoderScriptNotFound,
     #[error("decoders configured in cluster are empty, please check your cluster config")]
     DecoderChainIsEmpty,
+    #[error("BTC node responsed badly with error: {0}")]
+    FetchFromBtcNodeError(String),
+    #[error("BTC transaction format has broken: {0}")]
+    InvalidBtcTransactionFormat(String),
+    #[error("Inscription format broken: {0}")]
+    InvalidInscriptionFormat(String),
+    #[error("Inscription content must be hex format")]
+    InvalidInscriptionContentHexFormat,
+    #[error("Inscription content must be filled")]
+    EmptyInscriptionContent,
+    #[error("Inscription index flag exceeded")]
+    ExceededInscriptionIndex,
+    #[error("fs header like 'btcfs://' and 'ckbfs://' are not contained")]
+    InvalidOnchainFsuriFormat,
+    #[error("fs header like 'btcfs://' and 'ckbfs://' are not configured in config file")]
+    FsuriNotFoundInConfig,
+    #[error("IPFS Gateway responsed badly with error: {0}")]
+    FetchFromIpfsError(String),
+    #[error("HTTP(S) responsed badly with error: {0}")]
+    FetchFromHttpError(String),
+    #[error("No image found")]
+    NoImageFound,
+    #[error("DOB render output is not in format of DOB protocol")]
+    DOBRenderOutputInvalid,
 }
 
 pub enum Dob<'a> {
@@ -94,6 +119,7 @@ impl From<Error> for ErrorObjectOwned {
 #[derive(Deserialize)]
 #[cfg_attr(test, derive(serde::Serialize, PartialEq, Debug))]
 pub struct ClusterDescriptionField {
+    #[allow(dead_code)]
     pub description: String,
     pub dob: DOBClusterFormat,
 }
@@ -209,6 +235,7 @@ pub struct DOBDecoderFormat {
 // asscoiate `code_hash` of decoder binary with its onchain deployment information
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
 #[cfg_attr(test, derive(Default))]
+#[derive(Clone)]
 pub struct OnchainDecoderDeployment {
     pub code_hash: H256,
     pub tx_hash: H256,
@@ -217,6 +244,7 @@ pub struct OnchainDecoderDeployment {
 
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
 #[cfg_attr(test, derive(Default))]
+#[derive(Clone)]
 pub enum HashType {
     #[serde(rename(serialize = "data", deserialize = "data"))]
     #[cfg_attr(test, default)]
@@ -242,6 +270,7 @@ impl From<&HashType> for ScriptHashType {
 
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
 #[cfg_attr(test, derive(Default))]
+#[derive(Clone)]
 pub struct ScriptId {
     pub code_hash: H256,
     pub hash_type: HashType,
@@ -250,13 +279,24 @@ pub struct ScriptId {
 // standalone server settings in TOML format
 #[cfg_attr(feature = "standalone_server", derive(Serialize, Deserialize))]
 #[cfg_attr(test, derive(Default))]
+#[derive(Clone)]
 pub struct Settings {
     pub protocol_versions: Vec<String>,
     pub ckb_rpc: String,
+    #[cfg_attr(
+        feature = "standalone_server",
+        serde(
+            serialize_with = "serialize_fetcher",
+            deserialize_with = "deserialize_fetcher"
+        )
+    )]
+    pub image_fetcher_url: HashMap<String, Url>,
     pub rpc_server_address: String,
+    pub restful_server_address: Option<String>,
     pub decoders_cache_directory: PathBuf,
     pub dobs_cache_directory: PathBuf,
     pub dobs_cache_expiration_sec: u64,
+    pub decoders_cache_expiration_minutes: u64,
     pub onchain_decoder_deployment: Vec<OnchainDecoderDeployment>,
     pub available_spores: Vec<ScriptId>,
     pub available_clusters: Vec<ScriptId>,
@@ -275,6 +315,7 @@ pub struct ParsedTrait {
     pub value: Value,
 }
 
+#[cfg(feature = "standalone_server")]
 impl Serialize for ParsedTrait {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -286,6 +327,7 @@ impl Serialize for ParsedTrait {
     }
 }
 
+#[cfg(feature = "standalone_server")]
 impl<'de> Deserialize<'de> for ParsedTrait {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -302,4 +344,30 @@ impl<'de> Deserialize<'de> for ParsedTrait {
             })
             .unwrap_or_else(|| Err(serde::de::Error::custom("invalid ParsedTrait")))
     }
+}
+
+#[cfg(feature = "standalone_server")]
+fn serialize_fetcher<S>(urls: &HashMap<String, Url>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut map = serializer.serialize_map(Some(urls.len()))?;
+    for (key, url) in urls {
+        map.serialize_entry(key, &url.as_str())?;
+    }
+    map.end()
+}
+
+#[cfg(feature = "standalone_server")]
+fn deserialize_fetcher<'de, D>(deserializer: D) -> Result<HashMap<String, Url>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let map: HashMap<String, String> = HashMap::deserialize(deserializer)?;
+    let mut urls = HashMap::new();
+    for (key, url_str) in map {
+        let url = Url::parse(&url_str).map_err(serde::de::Error::custom)?;
+        urls.insert(key, url);
+    }
+    Ok(urls)
 }
