@@ -19,6 +19,9 @@ dobs_cache_directory = "cache/dobs"
 # expiration time indicator for cleaning whole dobs cache, zero means never clean
 dobs_cache_expiration_sec = 300
 
+# expiration time in minutes dedicated for type_id and type_script decoder cache, zero means always update
+decoders_cache_expiration_minutes = 1440
+
 # all deployed on-chain Spore contracts binary hash (order from new to old)
 # refer to: https://github.com/sporeprotocol/spore-contract/blob/master/docs/VERSIONS.md
 [[available_spores]]

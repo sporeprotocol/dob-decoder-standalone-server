@@ -32,6 +32,26 @@ fn build_type_script_search_option(type_script: Script) -> CellQueryOptions {
     CellQueryOptions::new_type(type_script)
 }
 
+fn file_older_than_minutes(file_path: &PathBuf, minutes: u64) -> bool {
+    if minutes == 0 {
+        return true;
+    }
+    let metadata = match std::fs::metadata(file_path) {
+        Ok(m) => m,
+        Err(_) => return true, // File doesn't exist or we can't access it, so it's "old".
+    };
+
+    let file_time = match metadata.modified().or_else(|_| metadata.created()) {
+        Ok(time) => time,
+        Err(_) => return true, // Can't get a timestamp, assume it's old.
+    };
+
+    match file_time.elapsed() {
+        Ok(elapsed) => elapsed.as_secs() >= minutes * 60,
+        Err(_) => true, // System clock is earlier than file time, assume it's old to be safe.
+    }
+}
+
 fn build_batch_search_options(
     type_args: &[u8; 32],
     available_script_ids: &[ScriptId],
@@ -267,7 +287,7 @@ pub async fn parse_decoder_path(
         DecoderLocationType::TypeId => {
             let hash = decoder.hash.as_ref().ok_or(Error::DecoderHashNotFound)?;
             decoder_path.push(format!("type_id_{}.bin", hex::encode(hash)));
-            if !decoder_path.exists() {
+            if file_older_than_minutes(&decoder_path, settings.decoders_cache_expiration_minutes) {
                 let decoder_search_option = build_type_id_search_option(hash.clone().into());
                 let decoder_binary = fetch_decoder_binary(rpc, decoder_search_option).await?;
                 std::fs::write(decoder_path.clone(), decoder_binary)
@@ -284,7 +304,7 @@ pub async fn parse_decoder_path(
                 "type_script_{}.bin",
                 hex::encode(script.calc_script_hash().raw_data())
             ));
-            if !decoder_path.exists() {
+            if file_older_than_minutes(&decoder_path, settings.decoders_cache_expiration_minutes) {
                 let decoder_search_option = build_type_script_search_option(script);
                 let decoder_binary = fetch_decoder_binary(rpc, decoder_search_option).await?;
                 std::fs::write(decoder_path.clone(), decoder_binary)

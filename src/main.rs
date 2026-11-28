@@ -25,6 +25,18 @@ async fn main() {
         "server settings: {}",
         serde_json::to_string_pretty(&settings).unwrap()
     );
+
+    tracing::info!("ensuring cache directories exist");
+    fs::create_dir_all(&settings.decoders_cache_directory)
+        .expect("failed to create decoders cache directory");
+    fs::create_dir_all(&settings.dobs_cache_directory)
+        .expect("failed to create DOBs cache directory");
+    tracing::info!(
+        "decoders cache directory: {:?}",
+        settings.decoders_cache_directory
+    );
+    tracing::info!("DOBs cache directory: {:?}", settings.dobs_cache_directory);
+
     let rpc_server_address = settings.rpc_server_address.clone();
     let cache_expiration = settings.dobs_cache_expiration_sec;
     let decoder = decoder::DOBDecoder::new(settings);
